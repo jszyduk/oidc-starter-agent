@@ -5,3 +5,31 @@ node_modules/
 dist/
 coverage/
 *.log
+
+# Build output
+[Bb]in/
+[Oo]bj/
+artifacts/
+
+# Test output
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# IDEs
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# OS files
+.DS_Store
+Thumbs.db
