@@ -1,3 +1,4 @@
+using OidcStarter.Agent.Auditors.Hardening.Detection;
 using OidcStarter.Agent.Core;
 
 namespace OidcStarter.Agent.Auditors.Hardening.Rules;
@@ -10,22 +11,25 @@ public sealed class KeycloakSetupExistsRule : HardeningRuleBase
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {
-        var exists = snapshot.Files.Any(file =>
-            file.RelativePath.Contains("keycloak", StringComparison.OrdinalIgnoreCase)
-            || file.Content.Contains("keycloak", StringComparison.OrdinalIgnoreCase)
-            || IsDockerComposeFile(file) && file.Content.Contains("quay.io/keycloak", StringComparison.OrdinalIgnoreCase));
-
-        return exists
-            ? []
-            : [Finding(
-                FindingSeverity.Medium,
+        if (!KeycloakSetupDetector.HasKeycloakSetup(snapshot))
+        {
+            return [Finding(
+                FindingSeverity.Low,
                 "No likely local Keycloak setup was found.",
-                "Include or document a local Keycloak setup, such as docker-compose configuration and realm import files.")];
-    }
+                "Baseline BFF-CONFIG-003: include or document a local Keycloak setup, such as docker-compose configuration and realm import files, and clearly mark it as development-only.")];
+        }
 
-    private static bool IsDockerComposeFile(RepositoryFile file)
-    {
-        var fileName = Path.GetFileName(file.RelativePath);
-        return fileName.StartsWith("docker-compose", StringComparison.OrdinalIgnoreCase);
+        if (KeycloakSetupDetector.HasDevelopmentOnlyLabeling(snapshot))
+        {
+            return [];
+        }
+
+        return [new AuditFinding(
+            RuleId,
+            "Local Keycloak setup is not clearly marked as development-only",
+            FindingSeverity.Low,
+            "A local Keycloak setup appears to exist, but no clear development-only warning was detected.",
+            null,
+            "Baseline BFF-CONFIG-003: clearly mark local Keycloak configuration as development-only and document that production deployments require environment-specific identity provider configuration.")];
     }
 }

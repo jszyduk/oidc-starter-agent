@@ -1485,6 +1485,241 @@ public sealed class HardeningRuleTests
 
         var finding = Assert.Single(findings);
         Assert.Equal("HARDENING-006", finding.RuleId);
+        Assert.Equal(FindingSeverity.Low, finding.Severity);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsFinding_WhenOnlyKeycloakRoadmapDocExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile("docs/keycloak-roadmap.md", "docs/keycloak-roadmap.md", """
+            Keycloak support is planned for a future milestone.
+            """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("No local Keycloak setup detected", finding.Title);
+        Assert.Equal(FindingSeverity.Low, finding.Severity);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsFinding_WhenReadmeOnlyMentionsKeycloak()
+    {
+        var snapshot = Snapshot(new RepositoryFile("README.md", "README.md", "Keycloak is supported."));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("No local Keycloak setup detected", finding.Title);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsNoFinding_WhenKeycloakSetupHasDevelopmentOnlyDocumentation()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/keycloak/docker-compose.yml", "infra/keycloak/docker-compose.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """),
+            new RepositoryFile("README.md", "README.md", """
+                Local Keycloak setup is for development only and must not be used in production.
+                """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsNoFinding_WhenComposeYmlHasKeycloakSetup()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/compose.yml", "infra/compose.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """),
+            new RepositoryFile("docs/keycloak.md", "docs/keycloak.md", """
+                The local Keycloak setup is for development only and must not be used in production.
+                """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsNoFinding_WhenLocalIdpYmlHasKeycloakSetup()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/local-idp.yml", "infra/local-idp.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """),
+            new RepositoryFile("README.md", "README.md", """
+                The local identity provider is development-only. Replace it for production.
+                """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsFinding_WhenKeycloakSetupHasNoDevelopmentOnlyWarning()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/keycloak/docker-compose.yml", "infra/keycloak/docker-compose.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-006", finding.RuleId);
+        Assert.Equal("Local Keycloak setup is not clearly marked as development-only", finding.Title);
+        Assert.Equal(FindingSeverity.Low, finding.Severity);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsFinding_WhenDevelopmentOnlyWarningExistsWithoutKeycloakSetup()
+    {
+        var snapshot = Snapshot(new RepositoryFile("README.md", "README.md", """
+            Local development only. Do not use in production.
+            """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("No local Keycloak setup detected", finding.Title);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsNoFinding_WhenDockerComposeCommentMarksSetupDevelopmentOnly()
+    {
+        var snapshot = Snapshot(new RepositoryFile("docker-compose.yml", "docker-compose.yml", """
+            services:
+              keycloak:
+                # Local development only. Do not use in production.
+                image: quay.io/keycloak/keycloak:latest
+            """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsFinding_WhenReadmeHasOnlyGenericDevelopmentMention()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/keycloak/docker-compose.yml", "infra/keycloak/docker-compose.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """),
+            new RepositoryFile("README.md", "README.md", "This project supports development."));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsFinding_WhenProductionWarningHasNoKeycloakContext()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/keycloak/docker-compose.yml", "infra/keycloak/docker-compose.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """),
+            new RepositoryFile("README.md", "README.md", "The sample database is development only and must not be used in production."));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsFinding_WhenKeycloakMentionAndUnrelatedProductionWarningExist()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/keycloak/docker-compose.yml", "infra/keycloak/docker-compose.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """),
+            new RepositoryFile("README.md", "README.md", """
+                Keycloak is supported.
+                The sample database is not for production.
+                """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("Local Keycloak setup is not clearly marked as development-only", finding.Title);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsNoFinding_WhenSameSentenceHasKeycloakDevelopmentOnlyWarning()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/keycloak/docker-compose.yml", "infra/keycloak/docker-compose.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """),
+            new RepositoryFile("README.md", "README.md", """
+                The local Keycloak setup is for development only and must not be used in production.
+                """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsNoFinding_WhenLocalIdentityProviderWarningExists()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/keycloak/docker-compose.yml", "infra/keycloak/docker-compose.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """),
+            new RepositoryFile("README.md", "README.md", """
+                The local identity provider is development-only. Replace it for production.
+                """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void KeycloakSetupExistsRule_ReturnsFinding_WhenOnlyGeneratedReportsHaveDevelopmentOnlyWarning()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("infra/keycloak/docker-compose.yml", "infra/keycloak/docker-compose.yml", """
+                services:
+                  keycloak:
+                    image: quay.io/keycloak/keycloak:latest
+                """),
+            new RepositoryFile("sample-output/audit-report.md", "sample-output/audit-report.md", """
+                Local Keycloak setup is for development only and must not be used in production.
+                """),
+            new RepositoryFile("reports/some-report.md", "reports/some-report.md", """
+                Local Keycloak setup is for development only and must not be used in production.
+                """));
+
+        var findings = new KeycloakSetupExistsRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
     }
 
     private static RepositorySnapshot Snapshot(params RepositoryFile[] files)
