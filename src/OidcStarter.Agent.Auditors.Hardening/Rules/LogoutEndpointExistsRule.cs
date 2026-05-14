@@ -1,3 +1,4 @@
+using OidcStarter.Agent.Auditors.Hardening.Detection;
 using OidcStarter.Agent.Core;
 
 namespace OidcStarter.Agent.Auditors.Hardening.Rules;
@@ -10,10 +11,7 @@ public sealed class LogoutEndpointExistsRule : HardeningRuleBase
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {
-        var exists = snapshot.Files
-            .Where(file => file.RelativePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
-            .Any(file => file.Content.Contains("/logout", StringComparison.OrdinalIgnoreCase)
-                || file.Content.Contains("Logout", StringComparison.OrdinalIgnoreCase));
+        var exists = AspNetMvcEndpointDetector.ContainsControllerEndpoint(snapshot, "logout", "GET", "POST");
 
         return exists
             ? []

@@ -17,7 +17,8 @@ public sealed class HardeningAuditor : IAuditor
             new NoTokenStorageInFrontendRule(),
             new KeycloakSetupExistsRule(),
             new BackendTestsExistRule(),
-            new ReadmeExistsRule()
+            new ReadmeExistsRule(),
+            new BffAuthEndpointsShouldUseControllersRule()
         ])
     {
     }
