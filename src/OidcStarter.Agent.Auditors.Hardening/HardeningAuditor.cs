@@ -24,6 +24,7 @@ public sealed class HardeningAuditor : IAuditor
             new KeycloakSetupExistsRule(),
             new BackendTestsExistRule(),
             new ReadmeExistsRule(),
+            new ProductionHardeningDocumentationRule(),
             new BffAuthEndpointsShouldUseControllersRule()
         ])
     {

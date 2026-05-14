@@ -108,7 +108,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | BFF-CONFIG-001 | Level 1 | Both | Configuration and secrets | Secrets should not be committed to source control. | Committed secrets can compromise identity providers, clients, or environments. | OWASP OAuth2 / Microsoft ASP.NET Core security guidance | Scan tracked config, docs, and sample files for likely secrets and private keys. | Critical | Planned |
 | BFF-CONFIG-002 | Level 1 | Both | Configuration and secrets | Environment-specific config should be separated. | Development settings should not silently become production defaults. | Microsoft ASP.NET Core security guidance | Scan appsettings files, frontend environment files, launch profiles, docs, and environment naming. | Medium | Planned |
 | BFF-CONFIG-003 | Level 1 | Both | Configuration and secrets | Development Keycloak config should be clearly marked as development-only. | Local identity provider setup is useful but should not be mistaken for production guidance. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Scan Keycloak/docker docs and config for development-only warnings. | Low | Partially Implemented |
-| BFF-CONFIG-004 | Level 1 | Both | Configuration and secrets | Production configuration assumptions should be documented. | Starter consumers need to know what must change before production use. | Microsoft ASP.NET Core security guidance / OWASP OAuth2 | Scan README/docs for production hardening caveats and required settings. | Medium | Planned |
+| BFF-CONFIG-004 | Level 1 | Both | Configuration and secrets | Production configuration assumptions should be documented. | Starter consumers need to know what must change before production use. | Microsoft ASP.NET Core security guidance / OWASP OAuth2 | Scan README/docs for production hardening caveats and required settings. | Medium | Implemented |
 | BFF-CONFIG-005 | Level 1 | Both | Configuration and secrets | CORS origins should be explicit. | Wildcard or overly broad CORS can expose authenticated APIs to unintended browser origins. | Browser-Based Apps / Microsoft ASP.NET Core security guidance | Scan CORS policy configuration for wildcard origins and environment-specific origin lists. | High | Planned |
 | BFF-CONFIG-006 | Level 1 | Both | Configuration and secrets | HTTPS assumptions should be documented. | OIDC redirects, secure cookies, and production browser security rely on HTTPS. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Scan docs and hosting config for HTTPS expectations. | Medium | Planned |
 | ASPNET-HOST-001 | Level 1 | BFF | ASP.NET Core hosting/security middleware | Authentication and authorization middleware should be registered in the correct order. | Incorrect middleware order can bypass or break authentication/authorization behavior. | Microsoft ASP.NET Core security guidance | Scan startup/program files for `UseAuthentication` before `UseAuthorization` and routing placement. | High | Implemented |
@@ -132,7 +132,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-005 | BFF-ARCH-001 | Implemented: checks suspicious frontend localStorage/sessionStorage token storage patterns. |
 | HARDENING-006 | BFF-CONFIG-003 | Partial: detects that a local Keycloak setup appears to exist, but not whether it is clearly marked development-only. |
 | HARDENING-007 | TEST-READINESS-001 | Partial: detects backend/package tests generally, but not login/logout/me behavior tests specifically. |
-| HARDENING-008 | TEST-READINESS-005 | Partial: detects README existence, but not production hardening caveats content. |
+| HARDENING-008 | TEST-READINESS-005 | Partial: checks README existence. HARDENING-016 covers production hardening caveat content in README/docs, but does not require that content to be in README.md specifically. |
 | HARDENING-009 | BFF-ARCH-003 | Implemented: reports BFF auth endpoints implemented with Minimal API mappings instead of MVC controller actions. |
 | HARDENING-010 | BFF-ARCH-007 | Implemented: checks that a likely logout action clears the local application session/cookie via SignOutAsync, SignOut, or SignOutResult near the logout action. |
 | HARDENING-011 | BFF-COOKIE-001 | Implemented: checks likely authentication cookie HttpOnly configuration while ignoring comments and likely test files. |
@@ -140,6 +140,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-013 | BFF-COOKIE-003 | Implemented: checks likely authentication cookie SameSite configuration while ignoring comments and likely test files. |
 | HARDENING-014 | ASPNET-HOST-001 | Implemented: checks likely ASP.NET Core pipeline files for UseAuthentication before UseAuthorization and reports missing UseAuthentication when UseAuthorization is present. Static and heuristic. |
 | HARDENING-015 | BFF-ARCH-002 | Implemented: detects suspicious browser token or bearer-auth handling in frontend code that appears to participate in BFF mode, while ignoring clearly SPA-specific files. Static and heuristic. |
+| HARDENING-016 | BFF-CONFIG-004 / TEST-READINESS-005 | Implemented for BFF-CONFIG-004 and partial for TEST-READINESS-005: checks README/docs for likely production hardening notes and concrete OIDC/BFF hardening topics, while ignoring analyzer baseline docs and generated reports. Static and heuristic. |
 
 ## Future Analyzer Implementation Notes
 
@@ -174,5 +175,4 @@ Rules should prefer architectural and security requirements over current impleme
 
 - Detect likely committed secrets in tracked configuration and frontend/backend files.
 - Detect wildcard or overly broad CORS origins.
-- Detect whether README/docs include production hardening caveats.
 - Detect tests for unauthorized and forbidden behavior.

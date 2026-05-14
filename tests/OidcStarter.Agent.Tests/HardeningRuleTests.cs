@@ -1235,6 +1235,222 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsNoFinding_WhenReadmeHasSectionAndConcreteTopics()
+    {
+        var snapshot = Snapshot(new RepositoryFile("README.md", "README.md", """
+            ## Production hardening
+
+            Before deploying this BFF starter, require HTTPS, configure SameSite cookies,
+            enable CSRF protection, and move secrets out of local development settings.
+            """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenReadmeHasOnlyGenericSecurityText()
+    {
+        var snapshot = Snapshot(new RepositoryFile("README.md", "README.md", "Security is important."));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-016", finding.RuleId);
+        Assert.Equal(FindingSeverity.Medium, finding.Severity);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenTopicsOnlyAppearInCodeFence()
+    {
+        var readme = string.Join(Environment.NewLine, [
+            "## Production hardening",
+            "```csharp",
+            "options.Cookie.SameSite = SameSiteMode.Lax;",
+            "options.Cookie.SecurePolicy = CookieSecurePolicy.Always;",
+            "builder.Services.AddCors();",
+            "var secret = configuration[\"ClientSecret\"];",
+            "```"
+        ]);
+        var snapshot = Snapshot(new RepositoryFile("README.md", "README.md", readme));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenTopicsOnlyAppearInIndentedCodeBlock()
+    {
+        var readme = string.Join(Environment.NewLine, [
+            "## Production hardening",
+            "    options.Cookie.SameSite = SameSiteMode.Lax;",
+            "    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;",
+            "    builder.Services.AddCors();",
+            "    var secret = configuration[\"ClientSecret\"];"
+        ]);
+        var snapshot = Snapshot(new RepositoryFile("README.md", "README.md", readme));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsNoFinding_WhenDocsFileHasHardeningNotes()
+    {
+        var snapshot = Snapshot(new RepositoryFile("docs/security.md", "docs/security.md", """
+            ## Production readiness
+
+            Before production, require HTTPS, configure explicit CORS origins,
+            store secrets in environment-specific secret stores, and enable forwarded headers
+            when the app runs behind a reverse proxy.
+            """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsNoFinding_WhenSecurityMarkdownHasHardeningNotes()
+    {
+        var snapshot = Snapshot(new RepositoryFile("SECURITY.md", "SECURITY.md", """
+            ## Production caveats
+
+            Use HTTPS for BFF deployments, configure SameSite cookies deliberately,
+            and keep secrets outside committed development configuration.
+            """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsNoFinding_WhenProductionDocsHaveHardeningNotes()
+    {
+        var snapshot = Snapshot(new RepositoryFile("docs/production.md", "docs/production.md", """
+            ## Before production
+
+            Require HTTPS, configure CORS origins, store secrets outside source control,
+            and enable forwarded headers behind a reverse proxy.
+            """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenSignalsAreScatteredAcrossFiles()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("README.md", "README.md", "## Production hardening"),
+            new RepositoryFile("docs/hosting.md", "docs/hosting.md", "HTTPS and CORS are deployment concerns."),
+            new RepositoryFile("docs/secrets.md", "docs/secrets.md", "Keep secrets out of source control."));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenOnlySecurityBaselineHasHardeningNotes()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("README.md", "README.md", "OIDC starter"),
+            new RepositoryFile("docs/security-baseline-v1.md", "docs/security-baseline-v1.md", """
+                Production security hardening includes HTTPS, SameSite, CSRF, CORS, secrets, and forwarded headers.
+                """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenOnlyRootChangelogHasHardeningNotes()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("README.md", "README.md", "OIDC starter"),
+            new RepositoryFile("CHANGELOG.md", "CHANGELOG.md", """
+                Production security hardening changed HTTPS, SameSite, CSRF, CORS, secrets, and forwarded headers.
+                """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsNoFinding_WhenReadmeIsMissingAndNoDocsExist()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "Console.WriteLine(\"hello\");"));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenOnlySampleOutputHasHardeningNotes()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("README.md", "README.md", "OIDC starter"),
+            new RepositoryFile("sample-output/audit-report.md", "sample-output/audit-report.md", """
+                Production security hardening includes HTTPS, SameSite, CSRF, CORS, secrets, and forwarded headers.
+                """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenOnlyReportsDirectoryHasHardeningNotes()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("README.md", "README.md", "OIDC starter"),
+            new RepositoryFile("reports/anything.md", "reports/anything.md", """
+                Production security hardening includes HTTPS, SameSite, CSRF, CORS, secrets, and forwarded headers.
+                """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenOnlyRootAuditReportHasHardeningNotes()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("README.md", "README.md", "OIDC starter"),
+            new RepositoryFile("audit-report.md", "audit-report.md", """
+                Production security hardening includes HTTPS, SameSite, CSRF, CORS, secrets, and forwarded headers.
+                """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void ProductionHardeningDocumentationRule_ReturnsFinding_WhenOnlyRootGeneratedReportHasHardeningNotes()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("README.md", "README.md", "OIDC starter"),
+            new RepositoryFile("security-report.md", "security-report.md", """
+                Production security hardening includes HTTPS, SameSite, CSRF, CORS, secrets, and forwarded headers.
+                """));
+
+        var findings = new ProductionHardeningDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
     public void NoTokenStorageInFrontendRule_ReturnsFinding_WhenTokenIsStoredInLocalStorage()
     {
         var snapshot = Snapshot(
