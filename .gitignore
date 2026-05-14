@@ -5,6 +5,7 @@ node_modules/
 dist/
 coverage/
 *.log
+audit-report.md
 
 # Build output
 [Bb]in/
