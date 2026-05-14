@@ -82,7 +82,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | OIDC-FLOW-005 | Level 1 | Both | OIDC / OAuth flow | OIDC authority or issuer should be configured explicitly. | Explicit issuer configuration reduces accidental trust in the wrong authority. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Scan backend/frontend config and sample settings for authority, issuer, metadata address, or equivalent options. | Medium | Planned |
 | OIDC-FLOW-006 | Level 1 | Both | OIDC / OAuth flow | Client secrets must not be exposed to browser frontend code. | Browser code is public; secrets in frontend assets are not secrets. | Browser-Based Apps / OWASP OAuth2 | Scan frontend files and public assets for client secret names and likely secret values. | Critical | Planned |
 | BFF-ARCH-001 | Level 1 | BFF | BFF architecture | Browser frontend should not store access tokens or refresh tokens in localStorage or sessionStorage. | Persistent browser token storage increases exposure to XSS and extension compromise. | Browser-Based Apps / OWASP OAuth2 | Scan frontend TypeScript/HTML for token storage patterns using localStorage/sessionStorage. | Critical | Implemented |
-| BFF-ARCH-002 | Level 1 | BFF | BFF architecture | Frontend should rely on backend session/cookie where BFF mode is used. | BFF architecture keeps tokens server-side and gives the browser a constrained session representation. | Browser-Based Apps / Microsoft ASP.NET Core security guidance | Scan frontend API/auth services and backend auth setup for cookie/session usage rather than browser bearer token handling. | High | Planned |
+| BFF-ARCH-002 | Level 1 | BFF | BFF architecture | Frontend should rely on backend session/cookie where BFF mode is used. | BFF architecture keeps tokens server-side and gives the browser a constrained session representation. | Browser-Based Apps / Microsoft ASP.NET Core security guidance | Scan frontend API/auth services and backend auth setup for cookie/session usage rather than browser bearer token handling. | High | Implemented |
 | BFF-ARCH-003 | Level 1 | BFF | BFF architecture | BFF auth endpoints should be implemented consistently as MVC controller actions for this reference starter. | Consistent controller actions are explicit, testable, and easier for starter users to understand. | Microsoft ASP.NET Core security guidance | Detect Minimal API auth route mappings for `/me`, `/login`, and `/logout`. | Medium | Implemented |
 | BFF-ARCH-004 | Level 1 | BFF | BFF architecture | Current-user/session-state endpoint should exist. | Browser clients need a safe way to discover authenticated session state without direct token access. | Browser-Based Apps / Microsoft ASP.NET Core security guidance | Detect MVC controller route/action for `me` or equivalent current-user endpoint. | Medium | Implemented |
 | BFF-ARCH-005 | Level 1 | BFF | BFF architecture | Login endpoint should exist. | The starter should expose a clear backend entry point for initiating sign-in. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Detect MVC controller route/action for login. | High | Implemented |
@@ -139,6 +139,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-012 | BFF-COOKIE-002 | Implemented: checks likely authentication cookie SecurePolicy configuration while ignoring comments and likely test files. |
 | HARDENING-013 | BFF-COOKIE-003 | Implemented: checks likely authentication cookie SameSite configuration while ignoring comments and likely test files. |
 | HARDENING-014 | ASPNET-HOST-001 | Implemented: checks likely ASP.NET Core pipeline files for UseAuthentication before UseAuthorization and reports missing UseAuthentication when UseAuthorization is present. Static and heuristic. |
+| HARDENING-015 | BFF-ARCH-002 | Implemented: detects suspicious browser token or bearer-auth handling in frontend code that appears to participate in BFF mode, while ignoring clearly SPA-specific files. Static and heuristic. |
 
 ## Future Analyzer Implementation Notes
 
@@ -160,7 +161,6 @@ Rules should prefer architectural and security requirements over current impleme
 
 - Detect whether unsafe HTTP methods are covered by antiforgery protection.
 - Detect whether logout accounts for identity-provider sign-out where applicable.
-- Detect whether frontend relies on backend session/cookie in BFF mode.
 
 ### SPA candidates
 

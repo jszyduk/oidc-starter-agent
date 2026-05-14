@@ -20,6 +20,7 @@ public sealed class HardeningAuditor : IAuditor
             new BffAntiforgeryFlowRule(),
             new AspNetAuthenticationAuthorizationMiddlewareOrderRule(),
             new NoTokenStorageInFrontendRule(),
+            new BffFrontendUsesBackendSessionRule(),
             new KeycloakSetupExistsRule(),
             new BackendTestsExistRule(),
             new ReadmeExistsRule(),

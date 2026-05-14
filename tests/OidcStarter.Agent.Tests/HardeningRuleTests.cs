@@ -609,6 +609,283 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenBffFrontendCallsBackendSessionEndpoints()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/bff-auth-view.component.ts", "src/frontend/bff-auth-view.component.ts", """
+            this.http.get("/api/auth/me", { withCredentials: true });
+            this.http.get("/api/auth/login", { withCredentials: true });
+            this.http.post("/api/auth/logout", {}, { withCredentials: true });
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsFinding_WhenBffFrontendUsesAuthorizationBearer()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/bff-auth-view.component.ts", "src/frontend/bff-auth-view.component.ts", """
+            const token = "abc";
+            this.http.get("/api/auth/me", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-015", finding.RuleId);
+        Assert.Equal("src/frontend/bff-auth-view.component.ts", finding.FilePath);
+        Assert.Contains("BFF-ARCH-002", finding.Recommendation);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsFinding_WhenBffFrontendUsesAccessToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/bff-auth-view.component.ts", "src/frontend/bff-auth-view.component.ts", """
+            const authMode = 'bff';
+            const tokenName = 'access_token';
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenTokenHandlingIsSpaSpecific()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/spa-auth-view.component.ts", "src/frontend/spa-auth-view.component.ts", """
+            import { OidcSecurityService } from 'angular-auth-oidc-client';
+            const tokenName = 'access_token';
+            const headers = { Authorization: `Bearer ${token}` };
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsFinding_WhenSharedBffAuthCodeUsesBearerToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/auth.service.ts", "src/frontend/auth.service.ts", """
+            const authMode = 'bff';
+            const options = {
+                setHeaders: { Authorization: `Bearer ${token}` }
+            };
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenSharedSpaAuthCodeUsesBearerToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/auth.service.ts", "src/frontend/auth.service.ts", """
+            const authMode = 'spa';
+            const headers = { Authorization: `Bearer ${token}` };
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsFinding_WhenSharedFileHasSpaAndBffMarkersWithBearerToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/auth.service.ts", "src/frontend/auth.service.ts", """
+            const spaMode = { authMode: 'spa' };
+            const bffMode = { authMode: 'bff' };
+            this.http.get("/api/auth/me");
+            const headers = { Authorization: `Bearer ${token}` };
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsFinding_WhenBearerTokenIsInSpaBranchOfSharedBffFile()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/auth.service.ts", "src/frontend/auth.service.ts", """
+            const modes = ['bff', 'spa'];
+            this.http.get("/api/auth/me");
+
+            if (mode === 'spa') {
+                headers = { Authorization: `Bearer ${token}` };
+            }
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.True(
+            findings.Count == 1,
+            "Conservative static behavior: shared files with explicit BFF markers and bearer-token handling are reported even when the token handling appears in a SPA branch.");
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsFinding_WhenPathContainsSpaButExplicitBffModeExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/spa-compat/bff-auth.service.ts", "src/frontend/spa-compat/bff-auth.service.ts", """
+            const authMode = 'bff';
+            this.http.get("/api/auth/me");
+            const headers = { Authorization: `Bearer ${token}` };
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenSuspiciousTermsOnlyAppearInComments()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/bff-auth-view.component.ts", "src/frontend/bff-auth-view.component.ts", """
+            // Authorization: Bearer abc
+            // access_token
+            this.http.get("/api/auth/me", { withCredentials: true });
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenOnlyCookieRequestSettingAndUnrelatedAuthorizationExist()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/http.service.ts", "src/frontend/http.service.ts", """
+            this.http.get("/api/widgets", { withCredentials: true });
+            const label = "Authorization required";
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenTokenTextOnlyAppearsInDisplayString()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/bff-auth-view.component.ts", "src/frontend/bff-auth-view.component.ts", """
+            this.http.get("/api/auth/me", { withCredentials: true });
+            const message = "access_token error";
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenNoBffFrontendIndicatorsExist()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/widget.component.ts", "src/frontend/widget.component.ts", """
+            export class WidgetComponent {
+                title = "Widget";
+            }
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsFinding_WhenBffFrontendCallsTokenEndpoint()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/bff-auth-view.component.ts", "src/frontend/bff-auth-view.component.ts", """
+            this.http.get("/api/auth/me", { withCredentials: true });
+            this.http.post("/realms/demo/protocol/openid-connect/token", body);
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenEnvironmentConfigContainsBothModes()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/src/environments/environment.development.ts", "src/frontend/src/environments/environment.development.ts", """
+            export const environment = {
+                authMode: 'bff',
+                sampleAuthMode: 'spa',
+                authority: 'http://localhost:8080/realms/demo',
+                clientId: 'oidc-starter',
+                redirectUrl: 'http://localhost:4200/callback',
+                postLogoutRedirectUri: 'http://localhost:4200',
+                scope: 'openid profile',
+                responseType: 'code'
+            };
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenEnvironmentConfigContainsSpaOidcConfigAndBffMode()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/src/environments/environment.ts", "src/frontend/src/environments/environment.ts", """
+            export const environment = {
+                authMode: 'bff',
+                spaAuth: {
+                    authority: 'http://localhost:8080/realms/demo',
+                    clientId: 'oidc-starter-spa',
+                    redirectUrl: 'http://localhost:4200/callback',
+                    scope: 'openid profile',
+                    responseType: 'code'
+                }
+            };
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsFinding_WhenEnvironmentConfigContainsAuthorizationBearer()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/src/environments/environment.development.ts", "src/frontend/src/environments/environment.development.ts", """
+            export const environment = {
+                authMode: 'bff',
+                headers: { Authorization: `Bearer ${token}` }
+            };
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffFrontendUsesBackendSessionRule_ReturnsNoFinding_WhenEnvironmentConfigIsSpaSpecific()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/frontend/src/environments/environment.development.ts", "src/frontend/src/environments/environment.development.ts", """
+            export const environment = {
+                authMode: 'spa',
+                authority: 'http://localhost:8080/realms/demo',
+                clientId: 'oidc-starter-spa',
+                redirectUrl: 'http://localhost:4200/callback',
+                responseType: 'code'
+            };
+            """));
+
+        var findings = new BffFrontendUsesBackendSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void AuthenticationCookieHttpOnlyRule_ReturnsNoFinding_WhenHttpOnlyIsConfigured()
     {
         var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
