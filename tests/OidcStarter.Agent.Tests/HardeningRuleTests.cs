@@ -415,6 +415,200 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsNoFinding_WhenAuthenticationPrecedesAuthorization()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+            var builder = WebApplication.CreateBuilder(args);
+            var app = builder.Build();
+
+            app.UseRouting();
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.MapControllers();
+            app.Run();
+            """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsFinding_WhenCorrectPipelineAndAuthorizationOnlyPipelineExist()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", """
+                var builder = WebApplication.CreateBuilder(args);
+                var app = builder.Build();
+
+                app.UseAuthentication();
+                app.UseAuthorization();
+                """),
+            new RepositoryFile("src/AdminPipeline.cs", "src/AdminPipeline.cs", """
+                public static class AdminPipeline
+                {
+                    public static void MapAdmin(WebApplication app)
+                    {
+                        app.UseAuthorization();
+                    }
+                }
+                """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-014", finding.RuleId);
+    }
+
+    [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsFinding_WhenAuthorizationPrecedesAuthentication()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+            var builder = WebApplication.CreateBuilder(args);
+            var app = builder.Build();
+
+            app.UseAuthorization();
+            app.UseAuthentication();
+            """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-014", finding.RuleId);
+        Assert.Contains("ASPNET-HOST-001", finding.Recommendation);
+    }
+
+    [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsFinding_WhenAuthorizationExistsWithoutAuthentication()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+            var builder = WebApplication.CreateBuilder(args);
+            var app = builder.Build();
+
+            app.UseRouting();
+            app.UseAuthorization();
+            app.MapControllers();
+            """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-014", finding.RuleId);
+    }
+
+    [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsFinding_WhenAuthenticationOnlyAppearsInComment()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+            var builder = WebApplication.CreateBuilder(args);
+            var app = builder.Build();
+
+            // app.UseAuthentication();
+            app.UseAuthorization();
+            """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsFinding_WhenAuthenticationOnlyAppearsInTestFile()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("tests/PipelineTests.cs", "tests/PipelineTests.cs", """
+                app.UseAuthentication();
+                app.UseAuthorization();
+                """),
+            new RepositoryFile("src/Program.cs", "src/Program.cs", """
+                var builder = WebApplication.CreateBuilder(args);
+                var app = builder.Build();
+
+                app.UseAuthorization();
+                """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsNoFinding_WhenNoAspNetCorePipelineExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Widget.cs", "src/Widget.cs", """
+            public sealed class Widget
+            {
+                public string Name { get; init; } = "";
+            }
+            """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsNoFinding_WhenMiddlewareCallsOnlyAppearInStringLiteral()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+            var sample = "app.UseAuthentication(); app.UseAuthorization();";
+            """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsFinding_WhenStringLiteralWouldOtherwiseMaskInvalidPipeline()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", """
+                var builder = WebApplication.CreateBuilder(args);
+                var app = builder.Build();
+
+                app.UseAuthorization();
+                """),
+            new RepositoryFile("src/Samples.cs", "src/Samples.cs", """
+                public static class Samples
+                {
+                    public const string Middleware = "app.UseAuthentication(); app.UseAuthorization();";
+                }
+                """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AspNetAuthenticationAuthorizationMiddlewareOrderRule_ReturnsFinding_WhenMiddlewareOrderIsSplitAcrossFiles()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", """
+                var builder = WebApplication.CreateBuilder(args);
+                var app = builder.Build();
+
+                app.UseAuthorization();
+                """),
+            new RepositoryFile("src/PipelineExtensions.cs", "src/PipelineExtensions.cs", """
+                public static class PipelineExtensions
+                {
+                    public static void AddAuth(this WebApplication app)
+                    {
+                        app.UseAuthentication();
+                    }
+                }
+                """));
+
+        var findings = new AspNetAuthenticationAuthorizationMiddlewareOrderRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Contains("could not be verified", finding.Description);
+    }
+
+    [Fact]
     public void AuthenticationCookieHttpOnlyRule_ReturnsNoFinding_WhenHttpOnlyIsConfigured()
     {
         var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """

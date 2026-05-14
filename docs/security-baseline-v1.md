@@ -111,7 +111,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | BFF-CONFIG-004 | Level 1 | Both | Configuration and secrets | Production configuration assumptions should be documented. | Starter consumers need to know what must change before production use. | Microsoft ASP.NET Core security guidance / OWASP OAuth2 | Scan README/docs for production hardening caveats and required settings. | Medium | Planned |
 | BFF-CONFIG-005 | Level 1 | Both | Configuration and secrets | CORS origins should be explicit. | Wildcard or overly broad CORS can expose authenticated APIs to unintended browser origins. | Browser-Based Apps / Microsoft ASP.NET Core security guidance | Scan CORS policy configuration for wildcard origins and environment-specific origin lists. | High | Planned |
 | BFF-CONFIG-006 | Level 1 | Both | Configuration and secrets | HTTPS assumptions should be documented. | OIDC redirects, secure cookies, and production browser security rely on HTTPS. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Scan docs and hosting config for HTTPS expectations. | Medium | Planned |
-| ASPNET-HOST-001 | Level 1 | BFF | ASP.NET Core hosting/security middleware | Authentication and authorization middleware should be registered in the correct order. | Incorrect middleware order can bypass or break authentication/authorization behavior. | Microsoft ASP.NET Core security guidance | Scan startup/program files for `UseAuthentication` before `UseAuthorization` and routing placement. | High | Planned |
+| ASPNET-HOST-001 | Level 1 | BFF | ASP.NET Core hosting/security middleware | Authentication and authorization middleware should be registered in the correct order. | Incorrect middleware order can bypass or break authentication/authorization behavior. | Microsoft ASP.NET Core security guidance | Scan startup/program files for `UseAuthentication` before `UseAuthorization` and routing placement. | High | Implemented |
 | ASPNET-HOST-002 | Level 2 | BFF | ASP.NET Core hosting/security middleware | HTTPS redirection should be considered for production. | Production apps should avoid serving authenticated traffic over plain HTTP. | Microsoft ASP.NET Core security guidance | Scan hosting config and docs for HTTPS redirection or explicit reverse-proxy termination assumptions. | Medium | Planned |
 | ASPNET-HOST-003 | Level 2 | BFF | ASP.NET Core hosting/security middleware | Forwarded headers should be documented or configured for reverse proxy deployments. | Reverse proxies affect scheme, host, redirects, secure cookies, and OIDC callback behavior. | Microsoft ASP.NET Core security guidance | Scan for forwarded headers middleware/config and deployment notes. | Medium | Planned |
 | ASPNET-HOST-004 | Level 1 | BFF | ASP.NET Core hosting/security middleware | Exception handling behavior should differ between development and production. | Production should avoid leaking stack traces and sensitive error details. | Microsoft ASP.NET Core security guidance | Scan startup/program files for environment-specific developer exception page vs production handler. | Medium | Planned |
@@ -138,6 +138,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-011 | BFF-COOKIE-001 | Implemented: checks likely authentication cookie HttpOnly configuration while ignoring comments and likely test files. |
 | HARDENING-012 | BFF-COOKIE-002 | Implemented: checks likely authentication cookie SecurePolicy configuration while ignoring comments and likely test files. |
 | HARDENING-013 | BFF-COOKIE-003 | Implemented: checks likely authentication cookie SameSite configuration while ignoring comments and likely test files. |
+| HARDENING-014 | ASPNET-HOST-001 | Implemented: checks likely ASP.NET Core pipeline files for UseAuthentication before UseAuthorization and reports missing UseAuthentication when UseAuthorization is present. Static and heuristic. |
 
 ## Future Analyzer Implementation Notes
 
@@ -158,7 +159,6 @@ Rules should prefer architectural and security requirements over current impleme
 ### BFF candidates
 
 - Detect whether unsafe HTTP methods are covered by antiforgery protection.
-- Detect middleware order for authentication/authorization.
 - Detect whether logout accounts for identity-provider sign-out where applicable.
 - Detect whether frontend relies on backend session/cookie in BFF mode.
 
