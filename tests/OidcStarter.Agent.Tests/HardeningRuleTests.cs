@@ -137,6 +137,284 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsNoFinding_WhenCompleteBffAntiforgeryFlowExists()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"),
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", """
+                public class AntiforgeryController : ControllerBase
+                {
+                    public IActionResult Token([FromServices] IAntiforgery antiforgery)
+                    {
+                        var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+                        Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!);
+                        return Ok();
+                    }
+                }
+                """),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", """
+                fetch("/api/orders", {
+                    method: "POST",
+                    headers: { "X-CSRF-TOKEN": token }
+                });
+                """));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenOnlyBackendSetupExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenOnlyBroadMentionExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile("README.md", "README.md", "This app should think about antiforgery and CSRF."));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenOnlyHeaderConventionIsDocumented()
+    {
+        var snapshot = Snapshot(new RepositoryFile("README.md", "README.md", "Send the X-CSRF-TOKEN header with writes."));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenBackendSetupAndTokenIssuingExistWithoutHeaderUsage()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"),
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", """
+                public class AntiforgeryController : ControllerBase
+                {
+                    public IActionResult Token([FromServices] IAntiforgery antiforgery)
+                    {
+                        var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+                        Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!);
+                        return Ok();
+                    }
+                }
+                """));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenHeaderUsageExistsWithoutBackendSetup()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/app/api.ts", "src/app/api.ts", """
+            fetch("/api/orders", {
+                method: "POST",
+                headers: { "X-CSRF-TOKEN": token }
+            });
+            """));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenCSharpSignalsOnlyAppearInComments()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", """
+                // builder.Services.AddAntiforgery(options => { });
+                // antiforgery.GetAndStoreTokens(HttpContext);
+                // Response.Cookies.Append("XSRF-TOKEN", token);
+                """),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", "headers: { \"X-CSRF-TOKEN\": token }"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenBackendSignalsOnlyAppearInTestFiles()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("tests/OidcStarter.Agent.Tests/AntiforgeryFlowTests.cs", "tests/OidcStarter.Agent.Tests/AntiforgeryFlowTests.cs", """
+                builder.Services.AddAntiforgery(options => { });
+                var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+                Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!);
+                """),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", "headers: { \"X-CSRF-TOKEN\": token }"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenIAntiforgeryExistsWithoutBackendSetup()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", """
+                public class AntiforgeryController : ControllerBase
+                {
+                    public IActionResult Token([FromServices] IAntiforgery antiforgery)
+                    {
+                        var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+                        return Ok(tokens.RequestToken);
+                    }
+                }
+                """),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", "headers: { \"X-CSRF-TOKEN\": token }"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsNoFinding_WhenUseAntiforgeryCompletesFlow()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", "app.UseAntiforgery();"),
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", """
+                public class AntiforgeryController : ControllerBase
+                {
+                    public IActionResult Token([FromServices] IAntiforgery antiforgery)
+                    {
+                        var tokens = antiforgery.GetTokens(HttpContext);
+                        return Ok(tokens.RequestToken);
+                    }
+                }
+                """),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", "new HttpHeaders().set(\"X-CSRF-TOKEN\", token);"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenCookieAppendIsUnrelatedToTokenIssuing()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", """
+                builder.Services.AddAntiforgery(options => { });
+                Response.Cookies.Append("theme", "dark");
+                """),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", "headers: { \"X-CSRF-TOKEN\": token }"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenFrontendHasBareCsrfVariable()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"),
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", "var tokens = antiforgery.GetAndStoreTokens(HttpContext);"),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", "const csrf = \"abc\";"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsNoFinding_WhenFrontendUsesHttpHeaders()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"),
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", "var tokens = antiforgery.GetAndStoreTokens(HttpContext);"),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", "new HttpHeaders().set(\"X-CSRF-TOKEN\", token);"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenMarkdownHasOnlyGenericCsrfProse()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"),
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", "var tokens = antiforgery.GetAndStoreTokens(HttpContext);"),
+            new RepositoryFile("README.md", "README.md", "CSRF is important for browser applications."));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsNoFinding_WhenMarkdownDocumentsExplicitHeaderName()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"),
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", "var tokens = antiforgery.GetAndStoreTokens(HttpContext);"),
+            new RepositoryFile("README.md", "README.md", "Send X-CSRF-TOKEN with browser-to-BFF write requests."));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsNoFinding_WhenCustomRequestVerificationHeaderIsUsed()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"),
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", "var tokens = antiforgery.GetAndStoreTokens(HttpContext);"),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", "headers: { \"X-Request-Verification-Token\": token }"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenBackendSignalsOnlyAppearInSingularTestPath()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("test/AuthFlow.cs", "test/AuthFlow.cs", """
+                builder.Services.AddAntiforgery(options => { });
+                var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+                """),
+            new RepositoryFile("src/app/api.ts", "src/app/api.ts", "headers: { \"X-CSRF-TOKEN\": token }"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void BffAntiforgeryFlowRule_ReturnsFinding_WhenHeaderUsageOnlyAppearsInFrontendSpecFile()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"),
+            new RepositoryFile("src/AntiforgeryController.cs", "src/AntiforgeryController.cs", "var tokens = antiforgery.GetAndStoreTokens(HttpContext);"),
+            new RepositoryFile("src/app/app.component.spec.ts", "src/app/app.component.spec.ts", "headers: { \"X-CSRF-TOKEN\": token }"));
+
+        var findings = new BffAntiforgeryFlowRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
     public void AuthenticationCookieHttpOnlyRule_ReturnsNoFinding_WhenHttpOnlyIsConfigured()
     {
         var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """

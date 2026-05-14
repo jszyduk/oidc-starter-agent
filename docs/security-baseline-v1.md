@@ -96,7 +96,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | BFF-COOKIE-005 | Level 1 | BFF | Cookies and session security | Cookie lifetime/session duration should be explicit. | Starter consumers should see the expected session lifetime rather than inherit unclear defaults. | Microsoft ASP.NET Core security guidance | Scan auth cookie options for expiration/lifetime settings and docs. | Medium | Planned |
 | BFF-COOKIE-006 | Level 2 | BFF | Cookies and session security | Sliding expiration should be intentional, not accidental. | Sliding sessions affect risk and user experience; production apps should make this choice consciously. | Microsoft ASP.NET Core security guidance | Scan cookie options and docs for sliding expiration setting or rationale. | Low | Planned |
 | BFF-CSRF-001 | Level 1 | BFF | CSRF / antiforgery | State-changing BFF endpoints should be protected against CSRF. | Cookie-authenticated browser requests are susceptible to CSRF unless protected by tokens, origin checks, or equivalent defenses. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Detect antiforgery services/middleware/attributes and state-changing endpoint coverage. | High | Planned |
-| BFF-CSRF-002 | Level 1 | BFF | CSRF / antiforgery | Antiforgery flow should be present for browser-to-BFF requests where cookies are used. | A browser frontend needs a practical way to obtain and send antiforgery tokens. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Scan for antiforgery API usage, token endpoint/header conventions, and frontend header usage. | High | Partially Implemented |
+| BFF-CSRF-002 | Level 1 | BFF | CSRF / antiforgery | Antiforgery flow should be present for browser-to-BFF requests where cookies are used. | A browser frontend needs a practical way to obtain and send antiforgery tokens. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Scan for antiforgery API usage, token endpoint/header conventions, and frontend header usage. | High | Implemented |
 | BFF-CSRF-003 | Level 1 | BFF | CSRF / antiforgery | Antiforgery token/header naming should be documented. | Consumers need to know how frontend requests are expected to carry the token. | Microsoft ASP.NET Core security guidance / OWASP CSRF | Scan README/docs for token/header names and frontend request examples. | Medium | Planned |
 | BFF-CSRF-004 | Level 1 | BFF | CSRF / antiforgery | Unsafe HTTP methods should be protected. | POST, PUT, PATCH, and DELETE requests can change state and need CSRF defenses in cookie-authenticated flows. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Detect unsafe endpoints and require antiforgery attributes, filters, or middleware coverage. | High | Planned |
 | BFF-CSRF-005 | Level 1 | BFF | CSRF / antiforgery | SameSite should not be treated as the only CSRF defense for sensitive operations. | SameSite is useful defense-in-depth but should not be the sole protection for sensitive state changes. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Scan docs/config for SameSite-only claims without antiforgery or equivalent request validation. | Medium | Planned |
@@ -128,7 +128,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-001 | BFF-ARCH-005 | Implemented: checks that a likely MVC login endpoint exists. |
 | HARDENING-002 | BFF-ARCH-006 | Implemented: checks that a likely MVC logout endpoint exists. |
 | HARDENING-003 | BFF-ARCH-004 | Implemented: checks that a likely current-user/session-state endpoint exists. |
-| HARDENING-004 | BFF-CSRF-002 | Partial: detects antiforgery mentions, but not browser-to-BFF flow coverage or unsafe endpoint protection. |
+| HARDENING-004 | BFF-CSRF-002 | Implemented: detects a likely browser-to-BFF antiforgery flow, including backend setup, token issuing/storage, and frontend/header usage or documented header convention. Still heuristic; does not verify unsafe endpoint coverage. |
 | HARDENING-005 | BFF-ARCH-001 | Implemented: checks suspicious frontend localStorage/sessionStorage token storage patterns. |
 | HARDENING-006 | BFF-CONFIG-003 | Partial: detects that a local Keycloak setup appears to exist, but not whether it is clearly marked development-only. |
 | HARDENING-007 | TEST-READINESS-001 | Partial: detects backend/package tests generally, but not login/logout/me behavior tests specifically. |
@@ -158,7 +158,6 @@ Rules should prefer architectural and security requirements over current impleme
 ### BFF candidates
 
 - Detect whether unsafe HTTP methods are covered by antiforgery protection.
-- Detect whether antiforgery token/header naming is documented.
 - Detect middleware order for authentication/authorization.
 - Detect whether logout accounts for identity-provider sign-out where applicable.
 - Detect whether frontend relies on backend session/cookie in BFF mode.

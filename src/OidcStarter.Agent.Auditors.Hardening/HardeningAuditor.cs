@@ -17,7 +17,7 @@ public sealed class HardeningAuditor : IAuditor
             new AuthenticationCookieHttpOnlyRule(),
             new AuthenticationCookieSecurePolicyRule(),
             new AuthenticationCookieSameSiteRule(),
-            new AntiforgeryMentionedRule(),
+            new BffAntiforgeryFlowRule(),
             new NoTokenStorageInFrontendRule(),
             new KeycloakSetupExistsRule(),
             new BackendTestsExistRule(),
