@@ -6,7 +6,7 @@ public sealed class KeycloakSetupExistsRule : HardeningRuleBase
 {
     public override string RuleId => "HARDENING-006";
 
-    public override string Title => "Keycloak setup exists";
+    public override string Title => "No local Keycloak setup detected";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

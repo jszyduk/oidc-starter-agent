@@ -7,7 +7,7 @@ public sealed class AuthenticationCookieSecurePolicyRule : HardeningRuleBase
 {
     public override string RuleId => "HARDENING-012";
 
-    public override string Title => "Authentication cookie SecurePolicy is configured";
+    public override string Title => "No explicit authentication cookie SecurePolicy configuration detected";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

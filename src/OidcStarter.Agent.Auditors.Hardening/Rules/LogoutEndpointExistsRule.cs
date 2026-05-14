@@ -7,7 +7,7 @@ public sealed class LogoutEndpointExistsRule : HardeningRuleBase
 {
     public override string RuleId => "HARDENING-002";
 
-    public override string Title => "Logout endpoint exists";
+    public override string Title => "No likely MVC logout endpoint detected";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

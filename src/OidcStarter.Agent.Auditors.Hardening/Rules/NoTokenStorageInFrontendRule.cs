@@ -9,7 +9,7 @@ public sealed class NoTokenStorageInFrontendRule : HardeningRuleBase
 
     public override string RuleId => "HARDENING-005";
 
-    public override string Title => "Frontend does not store tokens";
+    public override string Title => "Suspicious browser token storage detected";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

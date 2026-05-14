@@ -70,14 +70,14 @@ public sealed class MarkdownReportWriter
                 {
                     builder.AppendLine($"#### {finding.RuleId}: {finding.Title}");
                     builder.AppendLine();
-                    builder.AppendLine(finding.Description);
-                    builder.AppendLine();
+                    builder.AppendLine($"- Severity: {finding.Severity}");
 
                     if (!string.IsNullOrWhiteSpace(finding.FilePath))
                     {
                         builder.AppendLine($"- File: `{finding.FilePath}`");
                     }
 
+                    builder.AppendLine($"- Description: {finding.Description}");
                     builder.AppendLine($"- Recommendation: {finding.Recommendation}");
                     builder.AppendLine();
                 }

@@ -14,7 +14,7 @@ public sealed class BackendTestsExistRule : HardeningRuleBase
 
     public override string RuleId => "HARDENING-007";
 
-    public override string Title => "Backend tests exist";
+    public override string Title => "No likely backend/package tests detected";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

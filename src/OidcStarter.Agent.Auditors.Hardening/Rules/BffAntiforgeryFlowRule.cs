@@ -7,7 +7,7 @@ public sealed class BffAntiforgeryFlowRule : HardeningRuleBase
 {
     public override string RuleId => "HARDENING-004";
 
-    public override string Title => "BFF antiforgery flow is present";
+    public override string Title => "No likely complete BFF antiforgery flow detected";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

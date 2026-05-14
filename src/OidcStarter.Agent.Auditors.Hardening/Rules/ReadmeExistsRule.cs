@@ -6,7 +6,7 @@ public sealed class ReadmeExistsRule : HardeningRuleBase
 {
     public override string RuleId => "HARDENING-008";
 
-    public override string Title => "README exists";
+    public override string Title => "README.md is missing";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

@@ -17,40 +17,40 @@ Sample output for documentation purposes. This report is illustrative and was no
 
 ### Critical
 
-#### HARDENING-005: Frontend does not store tokens
+#### HARDENING-005: Suspicious browser token storage detected
 
-Suspicious frontend token storage pattern found.
-
+- Severity: Critical
 - File: `src/app/auth.ts`
+- Description: Suspicious frontend token storage pattern found.
 - Recommendation: Avoid storing OIDC tokens in browser localStorage or sessionStorage. Prefer cookie-backed BFF session handling.
 
 ### High
 
-#### HARDENING-004: Antiforgery is configured
+#### HARDENING-004: No likely complete BFF antiforgery flow detected
 
-No antiforgery-related code or configuration was found.
-
-- Recommendation: Add antiforgery protection for cookie-backed BFF state-changing requests and document the frontend token flow.
+- Severity: High
+- Description: No likely complete browser-to-BFF antiforgery flow was detected.
+- Recommendation: Baseline BFF-CSRF-002: ensure a browser-to-BFF antiforgery flow exists, including backend antiforgery configuration, token issuing/storage, and frontend/header usage or documented header convention.
 
 ### Medium
 
-#### HARDENING-006: Keycloak setup exists
+#### HARDENING-006: No local Keycloak setup detected
 
-No likely local Keycloak setup was found.
-
+- Severity: Medium
+- Description: No likely local Keycloak setup was found.
 - Recommendation: Include or document a local Keycloak setup, such as docker-compose configuration and realm import files.
 
 ### Low
 
-#### HARDENING-008: README exists
+#### HARDENING-008: README.md is missing
 
-The repository root README.md file was not found.
-
+- Severity: Low
+- Description: The repository root README.md file was not found.
 - Recommendation: Add a README.md that explains the BFF starter, setup steps, authentication flow, and security expectations.
 
 ## Recommendations
 
 - Avoid storing OIDC tokens in browser localStorage or sessionStorage. Prefer cookie-backed BFF session handling.
-- Add antiforgery protection for cookie-backed BFF state-changing requests and document the frontend token flow.
+- Baseline BFF-CSRF-002: ensure a browser-to-BFF antiforgery flow exists, including backend antiforgery configuration, token issuing/storage, and frontend/header usage or documented header convention.
 - Include or document a local Keycloak setup, such as docker-compose configuration and realm import files.
 - Add a README.md that explains the BFF starter, setup steps, authentication flow, and security expectations.

@@ -7,7 +7,7 @@ public sealed class AuthenticationCookieHttpOnlyRule : HardeningRuleBase
 {
     public override string RuleId => "HARDENING-011";
 
-    public override string Title => "Authentication cookie is HttpOnly";
+    public override string Title => "No explicit authentication cookie HttpOnly configuration detected";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

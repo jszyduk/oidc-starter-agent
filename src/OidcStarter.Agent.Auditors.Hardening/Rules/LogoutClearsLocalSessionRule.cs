@@ -7,7 +7,7 @@ public sealed class LogoutClearsLocalSessionRule : HardeningRuleBase
 {
     public override string RuleId => "HARDENING-010";
 
-    public override string Title => "Logout clears local application session";
+    public override string Title => "Logout does not appear to clear the local session";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

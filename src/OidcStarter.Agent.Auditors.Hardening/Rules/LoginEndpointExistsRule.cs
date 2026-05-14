@@ -7,7 +7,7 @@ public sealed class LoginEndpointExistsRule : HardeningRuleBase
 {
     public override string RuleId => "HARDENING-001";
 
-    public override string Title => "Login endpoint exists";
+    public override string Title => "No likely MVC login endpoint detected";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

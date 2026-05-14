@@ -7,7 +7,7 @@ public sealed partial class BffAuthEndpointsShouldUseControllersRule : Hardening
 {
     public override string RuleId => "HARDENING-009";
 
-    public override string Title => "BFF auth endpoints should use MVC controllers";
+    public override string Title => "BFF auth endpoints appear to use Minimal API mappings";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {

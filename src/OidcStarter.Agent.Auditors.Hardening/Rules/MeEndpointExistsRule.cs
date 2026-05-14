@@ -7,7 +7,7 @@ public sealed class MeEndpointExistsRule : HardeningRuleBase
 {
     public override string RuleId => "HARDENING-003";
 
-    public override string Title => "Current user endpoint exists";
+    public override string Title => "No likely current-user endpoint detected";
 
     public override IReadOnlyList<AuditFinding> Evaluate(RepositorySnapshot snapshot)
     {
