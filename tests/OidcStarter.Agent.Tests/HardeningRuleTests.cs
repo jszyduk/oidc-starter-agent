@@ -137,6 +137,343 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void AuthenticationCookieHttpOnlyRule_ReturnsNoFinding_WhenHttpOnlyIsConfigured()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+            builder.Services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.HttpOnly = true;
+            });
+            """));
+
+        var findings = new AuthenticationCookieHttpOnlyRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieHttpOnlyRule_ReturnsFinding_WhenHttpOnlyIsMissing()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAuthentication().AddCookie();"));
+
+        var findings = new AuthenticationCookieHttpOnlyRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-011", finding.RuleId);
+        Assert.Contains("BFF-COOKIE-001", finding.Recommendation);
+    }
+
+    [Fact]
+    public void AuthenticationCookieHttpOnlyRule_ReturnsFinding_WhenHttpOnlyOnlyAppearsInComment()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "// options.Cookie.HttpOnly = true;"));
+
+        var findings = new AuthenticationCookieHttpOnlyRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieHttpOnlyRule_ReturnsFinding_WhenHttpOnlyOnlyAppearsInTestFile()
+    {
+        var snapshot = Snapshot(new RepositoryFile("tests/AuthCookieTests.cs", "tests/AuthCookieTests.cs", "options.Cookie.HttpOnly = true;"));
+
+        var findings = new AuthenticationCookieHttpOnlyRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSecurePolicyRule_ReturnsNoFinding_WhenSecurePolicyAlwaysIsConfigured()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+            builder.Services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            });
+            """));
+
+        var findings = new AuthenticationCookieSecurePolicyRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSecurePolicyRule_ReturnsNoFinding_WhenSecurePolicySameAsRequestIsConfigured()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+            builder.Services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            });
+            """));
+
+        var findings = new AuthenticationCookieSecurePolicyRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSecurePolicyRule_ReturnsFinding_WhenSecurePolicyIsMissing()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAuthentication().AddCookie();"));
+
+        var findings = new AuthenticationCookieSecurePolicyRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-012", finding.RuleId);
+        Assert.Contains("BFF-COOKIE-002", finding.Recommendation);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSecurePolicyRule_ReturnsFinding_WhenSecurePolicyOnlyAppearsInComment()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "// options.Cookie.SecurePolicy = CookieSecurePolicy.Always;"));
+
+        var findings = new AuthenticationCookieSecurePolicyRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSecurePolicyRule_ReturnsFinding_WhenSecurePolicyOnlyAppearsInUnrelatedCode()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "var policy = CookieSecurePolicy.Always;"));
+
+        var findings = new AuthenticationCookieSecurePolicyRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSecurePolicyRule_ReturnsFinding_WhenSecurePolicyOnlyAppearsInTestFile()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/OidcStarter.Agent.Tests/AuthCookie.cs", "src/OidcStarter.Agent.Tests/AuthCookie.cs", "options.Cookie.SecurePolicy = CookieSecurePolicy.Always;"));
+
+        var findings = new AuthenticationCookieSecurePolicyRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsNoFinding_WhenSameSiteIsConfigured()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+            builder.Services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.SameSite = SameSiteMode.Lax;
+            });
+            """));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenSameSiteIsMissing()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAuthentication().AddCookie();"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-013", finding.RuleId);
+        Assert.Contains("BFF-COOKIE-003", finding.Recommendation);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenSameSiteOnlyAppearsInComment()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "// options.Cookie.SameSite = SameSiteMode.Lax;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenSameSiteOnlyAppearsInUnrelatedCode()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "var sameSite = SameSiteMode.Lax;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenSameSiteOnlyAppearsInTestFile()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthCookieTest.cs", "src/AuthCookieTest.cs", "options.Cookie.SameSite = SameSiteMode.Lax;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void LogoutClearsLocalSessionRule_ReturnsNoFinding_WhenLogoutCallsSignOutAsync()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            [Route("api/auth")]
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public async Task<IActionResult> Logout()
+                {
+                    await HttpContext.SignOutAsync();
+                    return Ok();
+                }
+            }
+            """));
+
+        var findings = new LogoutClearsLocalSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void LogoutClearsLocalSessionRule_ReturnsNoFinding_WhenLogoutReturnsSignOut()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout()
+                {
+                    return SignOut(CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+            }
+            """));
+
+        var findings = new LogoutClearsLocalSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void LogoutClearsLocalSessionRule_ReturnsNoFinding_WhenLogoutCreatesSignOutResult()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout()
+                {
+                    return new SignOutResult(CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+            }
+            """));
+
+        var findings = new LogoutClearsLocalSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void LogoutClearsLocalSessionRule_ReturnsNoFinding_WhenRouteOnlyLogoutActionUsesDifferentMethodName()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult EndSession()
+                {
+                    return SignOut(CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+            }
+            """));
+
+        var findings = new LogoutClearsLocalSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void LogoutClearsLocalSessionRule_ReturnsFinding_WhenLogoutDoesNotSignOut()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            [Route("api/auth")]
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout()
+                {
+                    return Ok();
+                }
+            }
+            """));
+
+        var findings = new LogoutClearsLocalSessionRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-010", finding.RuleId);
+        Assert.Contains("BFF-ARCH-007", finding.Recommendation);
+    }
+
+    [Fact]
+    public void LogoutClearsLocalSessionRule_ReturnsFinding_WhenSignOutAsyncIsUnrelatedToLogoutAction()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout()
+                {
+                    return Ok();
+                }
+
+                public async Task<IActionResult> ClearSomethingElse()
+                {
+                    await HttpContext.SignOutAsync();
+                    return Ok();
+                }
+            }
+            """));
+
+        var findings = new LogoutClearsLocalSessionRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void LogoutClearsLocalSessionRule_ReturnsFinding_WhenOnlyCookieSchemeConstantIsPresent()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout()
+                {
+                    var scheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                    return Ok();
+                }
+            }
+            """));
+
+        var findings = new LogoutClearsLocalSessionRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void LogoutClearsLocalSessionRule_ReturnsNoFinding_WhenLogoutEndpointIsMissing()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpGet("me")]
+                public IActionResult Me() => Ok();
+            }
+            """));
+
+        var findings = new LogoutClearsLocalSessionRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void ReadmeExistsRule_ReturnsFinding_WhenReadmeIsMissing()
     {
         var snapshot = Snapshot(
