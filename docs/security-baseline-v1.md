@@ -87,11 +87,11 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | BFF-ARCH-004 | Level 1 | BFF | BFF architecture | Current-user/session-state endpoint should exist. | Browser clients need a safe way to discover authenticated session state without direct token access. | Browser-Based Apps / Microsoft ASP.NET Core security guidance | Detect MVC controller route/action for `me` or equivalent current-user endpoint. | Medium | Implemented |
 | BFF-ARCH-005 | Level 1 | BFF | BFF architecture | Login endpoint should exist. | The starter should expose a clear backend entry point for initiating sign-in. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Detect MVC controller route/action for login. | High | Implemented |
 | BFF-ARCH-006 | Level 1 | BFF | BFF architecture | Logout endpoint should exist. | The starter should expose a clear backend entry point for ending the local session. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Detect MVC controller route/action for logout. | High | Implemented |
-| BFF-ARCH-007 | Level 1 | BFF | BFF architecture | Logout should clear local application session/cookie. | Logout that leaves the application cookie intact does not end the local authenticated session. | Microsoft ASP.NET Core security guidance / OWASP OAuth2 | Scan logout action for sign-out calls against local cookie scheme. | High | Planned |
+| BFF-ARCH-007 | Level 1 | BFF | BFF architecture | Logout should clear local application session/cookie. | Logout that leaves the application cookie intact does not end the local authenticated session. | Microsoft ASP.NET Core security guidance / OWASP OAuth2 | Scan logout action for sign-out calls against local cookie scheme. | High | Implemented |
 | BFF-ARCH-008 | Level 2 | BFF | BFF architecture | Logout should account for identity-provider sign-out where applicable. | Depending on the provider and app model, users may expect logout to end or coordinate the upstream identity provider session. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Scan logout flow and docs for OIDC sign-out behavior, callback paths, or explicit caveats. | Medium | Planned |
-| BFF-COOKIE-001 | Level 1 | BFF | Cookies and session security | Authentication cookie should be HttpOnly. | HttpOnly reduces cookie exposure to frontend JavaScript. | Microsoft ASP.NET Core security guidance / OWASP CSRF | Scan cookie authentication options for `HttpOnly` configuration or framework defaults plus documentation. | High | Planned |
-| BFF-COOKIE-002 | Level 1 | BFF | Cookies and session security | Authentication cookie should use Secure in production. | Secure cookies prevent transmission over plain HTTP in production. | Microsoft ASP.NET Core security guidance | Scan cookie options, environment-specific config, and production docs for `SecurePolicy`. | High | Planned |
-| BFF-COOKIE-003 | Level 1 | BFF | Cookies and session security | SameSite should be configured intentionally. | SameSite affects CSRF resistance and OIDC redirect compatibility; accidental defaults can break or weaken behavior. | Microsoft ASP.NET Core security guidance / OWASP CSRF | Scan cookie and correlation cookie options for SameSite values and explanatory docs. | Medium | Planned |
+| BFF-COOKIE-001 | Level 1 | BFF | Cookies and session security | Authentication cookie should be HttpOnly. | HttpOnly reduces cookie exposure to frontend JavaScript. | Microsoft ASP.NET Core security guidance / OWASP CSRF | Scan cookie authentication options for `HttpOnly` configuration or framework defaults plus documentation. | High | Implemented |
+| BFF-COOKIE-002 | Level 1 | BFF | Cookies and session security | Authentication cookie should use Secure in production. | Secure cookies prevent transmission over plain HTTP in production. | Microsoft ASP.NET Core security guidance | Scan cookie options, environment-specific config, and production docs for `SecurePolicy`. | High | Implemented |
+| BFF-COOKIE-003 | Level 1 | BFF | Cookies and session security | SameSite should be configured intentionally. | SameSite affects CSRF resistance and OIDC redirect compatibility; accidental defaults can break or weaken behavior. | Microsoft ASP.NET Core security guidance / OWASP CSRF | Scan cookie and correlation cookie options for SameSite values and explanatory docs. | Medium | Implemented |
 | BFF-COOKIE-004 | Level 1 | BFF | Cookies and session security | Cookie name should be explicit enough to avoid confusion or collisions. | Explicit cookie names make starter behavior clear and reduce collisions with host applications. | Microsoft ASP.NET Core security guidance | Scan cookie auth options for configured cookie name. | Low | Planned |
 | BFF-COOKIE-005 | Level 1 | BFF | Cookies and session security | Cookie lifetime/session duration should be explicit. | Starter consumers should see the expected session lifetime rather than inherit unclear defaults. | Microsoft ASP.NET Core security guidance | Scan auth cookie options for expiration/lifetime settings and docs. | Medium | Planned |
 | BFF-COOKIE-006 | Level 2 | BFF | Cookies and session security | Sliding expiration should be intentional, not accidental. | Sliding sessions affect risk and user experience; production apps should make this choice consciously. | Microsoft ASP.NET Core security guidance | Scan cookie options and docs for sliding expiration setting or rationale. | Low | Planned |
@@ -134,12 +134,18 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-007 | TEST-READINESS-001 | Partial: detects backend/package tests generally, but not login/logout/me behavior tests specifically. |
 | HARDENING-008 | TEST-READINESS-005 | Partial: detects README existence, but not production hardening caveats content. |
 | HARDENING-009 | BFF-ARCH-003 | Implemented: reports BFF auth endpoints implemented with Minimal API mappings instead of MVC controller actions. |
+| HARDENING-010 | BFF-ARCH-007 | Implemented: checks that a likely logout action clears the local application session/cookie via SignOutAsync, SignOut, or SignOutResult near the logout action. |
+| HARDENING-011 | BFF-COOKIE-001 | Implemented: checks likely authentication cookie HttpOnly configuration while ignoring comments and likely test files. |
+| HARDENING-012 | BFF-COOKIE-002 | Implemented: checks likely authentication cookie SecurePolicy configuration while ignoring comments and likely test files. |
+| HARDENING-013 | BFF-COOKIE-003 | Implemented: checks likely authentication cookie SameSite configuration while ignoring comments and likely test files. |
 
 ## Future Analyzer Implementation Notes
 
 Deterministic rules should produce facts: files inspected, patterns found, suspected gaps, and why a finding was emitted. They should avoid presenting broad security conclusions that the static analyzer cannot prove.
 
 A future LLM layer, if added, should interpret findings, explain tradeoffs, and prioritize backlog items. It should not replace deterministic rule evidence.
+
+Implemented status means analyzer coverage exists in `oidc-starter-agent`. It does not mean the external `oidc-starter` repository currently passes the rule. Findings from `audit-report.md` are run-specific output and should not directly change baseline status.
 
 Future findings should include or infer the relevant auth mode where possible. BFF findings should not be blindly applied to SPA mode, and SPA findings should not be blindly applied to BFF mode. Some findings may apply to Both. A future CLI may support explicit mode selection, for example `oidc-agent audit hardening --mode bff`, `oidc-agent audit hardening --mode spa`, or `oidc-agent audit hardening --mode both`.
 
@@ -151,11 +157,11 @@ Rules should prefer architectural and security requirements over current impleme
 
 ### BFF candidates
 
-- Detect authentication cookie `HttpOnly`, `Secure`, and `SameSite` configuration.
-- Detect whether logout clears the local application session/cookie.
 - Detect whether unsafe HTTP methods are covered by antiforgery protection.
 - Detect whether antiforgery token/header naming is documented.
 - Detect middleware order for authentication/authorization.
+- Detect whether logout accounts for identity-provider sign-out where applicable.
+- Detect whether frontend relies on backend session/cookie in BFF mode.
 
 ### SPA candidates
 
