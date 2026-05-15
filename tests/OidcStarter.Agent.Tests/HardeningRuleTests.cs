@@ -167,6 +167,434 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenNoUnsafeEndpointsExist()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [HttpGet("me")]
+                public IActionResult Me() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenPostEndpointHasNoAntiforgeryCoverage()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-021", finding.RuleId);
+        Assert.Equal(FindingSeverity.High, finding.Severity);
+        Assert.Equal("src/OidcStarter.AspNetCore.Bff/AuthController.cs", finding.FilePath);
+        Assert.Contains("AuthController.Logout [HttpPost]", finding.Description);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenControllerOnlyAppearsInStringLiteral()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Samples.cs",
+            "src/OidcStarter.AspNetCore.Bff/Samples.cs",
+            "\"\"\"\r\npublic class AuthController : ControllerBase\r\n{\r\n    [HttpPost(\"logout\")]\r\n    public IActionResult Logout() => Ok();\r\n}\r\n\"\"\";"));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenGlobalFilterOnlyAppearsInStringLiteral()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            var sample = "options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());";
+
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenPostEndpointHasValidateAntiForgeryToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [ValidateAntiForgeryToken]
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenPostEndpointHasAutoValidateAntiforgeryToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [AutoValidateAntiforgeryToken]
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenAcceptVerbsPostIsUsed()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [AcceptVerbs("POST")]
+                public IActionResult Save() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenAcceptVerbsGetIsUsed()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [AcceptVerbs("GET")]
+                public IActionResult Read() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenAcceptVerbsPostHasValidateAntiForgeryToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [ValidateAntiForgeryToken]
+                [AcceptVerbs("POST")]
+                public IActionResult Save() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenControllerHasAutoValidateAntiforgeryToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            [AutoValidateAntiforgeryToken]
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenControllerLevelAttributeDoesNotCoverAnotherController()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Controllers.cs",
+            "src/OidcStarter.AspNetCore.Bff/Controllers.cs",
+            """
+            [AutoValidateAntiforgeryToken]
+            public class ProtectedController : ControllerBase
+            {
+                [HttpPost("save")]
+                public IActionResult Save() => Ok();
+            }
+
+            public class UnprotectedController : ControllerBase
+            {
+                [HttpPost("delete")]
+                public IActionResult Delete() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Contains("UnprotectedController.Delete [HttpPost]", finding.Description);
+        Assert.DoesNotContain("ProtectedController.Save", finding.Description);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenHelperMethodAfterControllerHasPostAttribute()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Controllers.cs",
+            "src/OidcStarter.AspNetCore.Bff/Controllers.cs",
+            """
+            [AutoValidateAntiforgeryToken]
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+            }
+
+            public class Helper
+            {
+                [HttpPost("not-an-action")]
+                public IActionResult NotAnAction() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenGlobalMvcFilterExists()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+                """
+                services.AddControllers(options =>
+                {
+                    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+                });
+                """),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+                "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+                """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public IActionResult Logout() => Ok();
+                }
+                """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenEndpointIgnoresAntiforgeryToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [IgnoreAntiforgeryToken]
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Contains("opt out", finding.Description);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenOnlyCommentHasAntiforgeryAttribute()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+
+                // [ValidateAntiForgeryToken]
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenOnlyTestFileHasGlobalFilter()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+                "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+                """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public IActionResult Logout() => Ok();
+                }
+                """),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/AuthControllerTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/AuthControllerTests.cs",
+                "options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());"));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenPackageEndpointUncoveredEvenIfSampleHasGlobalFilter()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+                "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+                """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public IActionResult Logout() => Ok();
+                }
+                """),
+            new RepositoryFile(
+                "src/Backend/Program.cs",
+                "src/Backend/Program.cs",
+                "options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());"));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenSampleEndpointProtectedAndNoPackageProjectExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/Backend/AuthController.cs",
+            "src/Backend/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [ValidateAntiForgeryToken]
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Theory]
+    [InlineData("HttpPut")]
+    [InlineData("HttpPatch")]
+    [InlineData("HttpDelete")]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_ForUnsafeMethods(string attributeName)
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/OrdersController.cs",
+            "src/OidcStarter.AspNetCore.Bff/OrdersController.cs",
+            $$"""
+            public class OrdersController : ControllerBase
+            {
+                [{{attributeName}}("orders/{id}")]
+                public IActionResult Save() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_ForGetEndpoint()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/StatusController.cs",
+            "src/OidcStarter.AspNetCore.Bff/StatusController.cs",
+            """
+            public class StatusController : ControllerBase
+            {
+                [HttpGet("status")]
+                public IActionResult Status() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void BffAntiforgeryFlowRule_ReturnsFinding_WhenOnlyBackendSetupExists()
     {
         var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "builder.Services.AddAntiforgery(options => { });"));

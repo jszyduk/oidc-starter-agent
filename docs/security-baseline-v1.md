@@ -98,7 +98,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | BFF-CSRF-001 | Level 1 | BFF | CSRF / antiforgery | State-changing BFF endpoints should be protected against CSRF. | Cookie-authenticated browser requests are susceptible to CSRF unless protected by tokens, origin checks, or equivalent defenses. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Detect antiforgery services/middleware/attributes and state-changing endpoint coverage. | High | Planned |
 | BFF-CSRF-002 | Level 1 | BFF | CSRF / antiforgery | Antiforgery flow should be present for browser-to-BFF requests where cookies are used. | A browser frontend needs a practical way to obtain and send antiforgery tokens. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Scan for antiforgery API usage, token endpoint/header conventions, and frontend header usage. | High | Implemented |
 | BFF-CSRF-003 | Level 1 | BFF | CSRF / antiforgery | Antiforgery token/header naming should be documented. | Consumers need to know how frontend requests are expected to carry the token. | Microsoft ASP.NET Core security guidance / OWASP CSRF | Scan README/docs for token/header names and frontend request examples. | Medium | Planned |
-| BFF-CSRF-004 | Level 1 | BFF | CSRF / antiforgery | Unsafe HTTP methods should be protected. | POST, PUT, PATCH, and DELETE requests can change state and need CSRF defenses in cookie-authenticated flows. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Detect unsafe endpoints and require antiforgery attributes, filters, or middleware coverage. | High | Planned |
+| BFF-CSRF-004 | Level 1 | BFF | CSRF / antiforgery | Unsafe HTTP methods should be protected. | POST, PUT, PATCH, and DELETE requests can change state and need CSRF defenses in cookie-authenticated flows. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Detect unsafe endpoints and require antiforgery attributes, filters, or middleware coverage. | High | Implemented |
 | BFF-CSRF-005 | Level 1 | BFF | CSRF / antiforgery | SameSite should not be treated as the only CSRF defense for sensitive operations. | SameSite is useful defense-in-depth but should not be the sole protection for sensitive state changes. | OWASP CSRF / Microsoft ASP.NET Core security guidance | Scan docs/config for SameSite-only claims without antiforgery or equivalent request validation. | Medium | Planned |
 | BFF-AUTHZ-001 | Level 1 | Both | Authorization and claims | Authorization foundation should exist. | A starter should demonstrate protected endpoints and authorization concepts, not only authentication. | Microsoft ASP.NET Core security guidance / OWASP OAuth2 | Scan backend/frontend samples for authorization services, middleware, policies, route guards, or protected sample behavior. | Medium | Planned |
 | BFF-AUTHZ-002 | Level 1 | Both | Authorization and claims | Role/claim mapping should be explicit and testable. | OIDC provider claims vary; explicit mapping prevents hidden assumptions. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Scan for claims transformation, role mapping extension points, and tests. | Medium | Planned |
@@ -145,6 +145,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-018 | BFF-COOKIE-005 | Implemented: checks package-aware authentication cookie lifetime/session duration configuration. Static and heuristic. |
 | HARDENING-019 | BFF-COOKIE-006 | Implemented: checks package-aware explicit sliding expiration configuration. Static and heuristic. |
 | HARDENING-020 | BFF-COOKIE-004 | Implemented: checks package-aware explicit authentication cookie name configuration. Static and heuristic. |
+| HARDENING-021 | BFF-CSRF-004 | Implemented: checks package-aware unsafe MVC endpoints for likely antiforgery protection through action/controller attributes, global MVC filters, or clear global antiforgery signals. Static and heuristic. |
 
 ## Future Analyzer Implementation Notes
 
@@ -164,7 +165,6 @@ Rules should prefer architectural and security requirements over current impleme
 
 ### BFF candidates
 
-- Detect whether unsafe HTTP methods are covered by antiforgery protection.
 
 ### SPA candidates
 
