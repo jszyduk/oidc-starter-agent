@@ -43,19 +43,28 @@ internal static class ProgramRunner
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: dotnet run -- audit hardening --repo \"[FULL_PATH_TO_REPO]\\oidc-starter\" --out \"audit-report.md\"");
+        Console.Error.WriteLine("Usage: dotnet run -- audit starter --repo \"[FULL_PATH_TO_REPO]\\oidc-starter\" --out \"audit-report.md\"");
+        Console.Error.WriteLine("Audit types: starter, hardening. 'hardening' is a backward-compatible alias for 'starter'.");
     }
 }
 
-internal sealed record CliOptions(string RepositoryPath, string OutputPath)
+public sealed record CliOptions(string AuditType, string RepositoryPath, string OutputPath)
 {
+    public const string StarterAuditType = "starter";
+    public const string HardeningAuditType = "hardening";
+
     public static CliOptions Parse(string[] args)
     {
         if (args.Length < 4
-            || !args[0].Equals("audit", StringComparison.OrdinalIgnoreCase)
-            || !args[1].Equals("hardening", StringComparison.OrdinalIgnoreCase))
+            || !args[0].Equals("audit", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("Invalid command. Expected 'audit hardening'.");
+            throw new ArgumentException("Invalid command. Expected 'audit starter'.");
+        }
+
+        var auditType = args[1];
+        if (!IsSupportedAuditType(auditType))
+        {
+            throw new ArgumentException($"Unknown audit type '{auditType}'. Supported audit types: starter, hardening.");
         }
 
         string? repositoryPath = null;
@@ -84,7 +93,13 @@ internal sealed record CliOptions(string RepositoryPath, string OutputPath)
             throw new ArgumentException("Missing required argument: --repo");
         }
 
-        return new CliOptions(Path.GetFullPath(repositoryPath), outputPath);
+        return new CliOptions(StarterAuditType, Path.GetFullPath(repositoryPath), outputPath);
+    }
+
+    private static bool IsSupportedAuditType(string auditType)
+    {
+        return auditType.Equals(StarterAuditType, StringComparison.OrdinalIgnoreCase)
+            || auditType.Equals(HardeningAuditType, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ReadValue(string[] args, ref int index, string optionName)

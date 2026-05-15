@@ -26,8 +26,10 @@ Status: v1 foundation / deterministic analyzer only.
 ## Usage
 
 ```powershell
-dotnet run --project src/OidcStarter.Agent.Cli -- audit hardening --repo "C:\Repos\oidc-starter" --out "audit-report.md"
+dotnet run --project src/OidcStarter.Agent.Cli -- audit starter --repo "C:\Repos\oidc-starter" --out "audit-report.md"
 ```
+
+`audit starter` runs the Starter Hardening Auditor against the `oidc-starter` starter/package repository. `audit hardening` is kept as a backward-compatible alias for the same auditor. A Consumer Integration Auditor is future work and is not implemented yet.
 
 ## Development
 

@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\OidcStarter.Agent.Core\OidcStarter.Agent.Core.csproj" />
     <ProjectReference Include="..\..\src\OidcStarter.Agent.Auditors.Starter\OidcStarter.Agent.Auditors.Starter.csproj" />
+    <ProjectReference Include="..\..\src\OidcStarter.Agent.Cli\OidcStarter.Agent.Cli.csproj" />
   </ItemGroup>
 
 </Project>
