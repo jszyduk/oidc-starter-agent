@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OidcStarter.Agent.Core", "src\OidcStarter.Agent.Core\OidcStarter.Agent.Core.csproj", "{E1F556DE-AD13-47CF-94F1-8863004714F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OidcStarter.Agent.Auditors.Hardening", "src\OidcStarter.Agent.Auditors.Hardening\OidcStarter.Agent.Auditors.Hardening.csproj", "{1B26477C-5CF7-44C4-AE71-775C7DCF907A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OidcStarter.Agent.Auditors.Starter", "src\OidcStarter.Agent.Auditors.Starter\OidcStarter.Agent.Auditors.Starter.csproj", "{1B26477C-5CF7-44C4-AE71-775C7DCF907A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OidcStarter.Agent.Cli", "src\OidcStarter.Agent.Cli\OidcStarter.Agent.Cli.csproj", "{0320889D-A52C-4331-95BF-CDB0A7722C95}"
 EndProject

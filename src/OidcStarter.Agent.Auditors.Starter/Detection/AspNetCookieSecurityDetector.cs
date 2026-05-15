@@ -1,23 +1,23 @@
 using System.Text.RegularExpressions;
 using OidcStarter.Agent.Core;
 
-namespace OidcStarter.Agent.Auditors.Hardening.Detection;
+namespace OidcStarter.Agent.Auditors.Starter.Detection;
 
 public static partial class AspNetCookieSecurityDetector
 {
     public static bool HasHttpOnlyCookieConfiguration(RepositorySnapshot snapshot)
     {
-        return ProductionCSharpFiles(snapshot).Any(file => HttpOnlyRegex().IsMatch(RemoveComments(file.Content)));
+        return StarterCookieConfigurationFiles(snapshot).Any(file => HttpOnlyRegex().IsMatch(RemoveComments(file.Content)));
     }
 
     public static bool HasSecureCookieConfiguration(RepositorySnapshot snapshot)
     {
-        return ProductionCSharpFiles(snapshot).Any(file => SecurePolicyRegex().IsMatch(RemoveComments(file.Content)));
+        return StarterCookieConfigurationFiles(snapshot).Any(file => SecurePolicyRegex().IsMatch(RemoveComments(file.Content)));
     }
 
     public static bool HasSameSiteCookieConfiguration(RepositorySnapshot snapshot)
     {
-        return ProductionCSharpFiles(snapshot).Any(file => SameSiteRegex().IsMatch(RemoveComments(file.Content)));
+        return StarterCookieConfigurationFiles(snapshot).Any(file => HasSameSiteAssignment(RemoveComments(file.Content)));
     }
 
     public static bool LogoutClearsLocalCookieSession(RepositorySnapshot snapshot)
@@ -35,24 +35,43 @@ public static partial class AspNetCookieSecurityDetector
 
     private static IEnumerable<RepositoryFile> ProductionCSharpFiles(RepositorySnapshot snapshot)
     {
-        return CSharpFiles(snapshot).Where(file => !IsTestFile(file.RelativePath));
+        return CSharpFiles(snapshot).Where(StarterRepositoryLayoutDetector.IsProductionStarterCodeFile);
     }
 
-    private static bool IsTestFile(string relativePath)
+    private static IEnumerable<RepositoryFile> StarterCookieConfigurationFiles(RepositorySnapshot snapshot)
     {
-        var normalizedPath = relativePath.Replace('\\', '/');
-        var fileName = Path.GetFileName(normalizedPath);
+        var productionFiles = ProductionCSharpFiles(snapshot).ToList();
+        var packageFiles = productionFiles
+            .Where(StarterRepositoryLayoutDetector.IsBffPackageFile)
+            .ToList();
 
-        return normalizedPath.Contains("/tests/", StringComparison.OrdinalIgnoreCase)
-            || normalizedPath.Contains(".Tests", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith("Tests.cs", StringComparison.OrdinalIgnoreCase)
-            || fileName.EndsWith("Test.cs", StringComparison.OrdinalIgnoreCase);
+        if (packageFiles.Count > 0)
+        {
+            return packageFiles;
+        }
+
+        return productionFiles.Where(StarterRepositoryLayoutDetector.IsSampleBackendFile);
     }
 
     private static string RemoveComments(string content)
     {
         var withoutBlockComments = BlockCommentRegex().Replace(content, string.Empty);
         return LineCommentRegex().Replace(withoutBlockComments, string.Empty);
+    }
+
+    private static bool HasSameSiteAssignment(string content)
+    {
+        return SameSiteAssignmentRegex()
+            .Matches(content)
+            .Any(match => IsValidSameSiteValue(match.Groups["value"].Value));
+    }
+
+    private static bool IsValidSameSiteValue(string value)
+    {
+        var trimmedValue = value.Trim();
+
+        return SameSiteModeValueRegex().IsMatch(trimmedValue)
+            || CookieSameSiteSettingRegex().IsMatch(trimmedValue);
     }
 
     private static IEnumerable<string> GetLikelyLogoutActionBodies(string content)
@@ -116,8 +135,14 @@ public static partial class AspNetCookieSecurityDetector
     [GeneratedRegex(@"\bnew\s+CookieBuilder\s*\{[^}]*\bSecurePolicy\s*=\s*CookieSecurePolicy\.(?:Always|SameAsRequest)\b|(?:\b\w+|\))?\.?Cookie\.SecurePolicy\s*=\s*CookieSecurePolicy\.(?:Always|SameAsRequest)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline)]
     private static partial Regex SecurePolicyRegex();
 
-    [GeneratedRegex(@"\bnew\s+CookieBuilder\s*\{[^}]*\bSameSite\s*=\s*SameSiteMode\.(?:Strict|Lax|None)\b|(?:\b\w+|\))?\.?Cookie\.SameSite\s*=\s*SameSiteMode\.(?:Strict|Lax|None)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline)]
-    private static partial Regex SameSiteRegex();
+    [GeneratedRegex(@"\b(?:new\s+CookieBuilder\s*\{[^}]*\bSameSite|(?:\b\w+|\))?\.?(?:Cookie|CorrelationCookie|NonceCookie)\.SameSite)\s*=\s*(?<value>[^,;}\r\n]+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline)]
+    private static partial Regex SameSiteAssignmentRegex();
+
+    [GeneratedRegex(@"^SameSiteMode\.(?:Strict|Lax|None)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex SameSiteModeValueRegex();
+
+    [GeneratedRegex(@"^(?:\w+\.)*CookieSameSite$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CookieSameSiteSettingRegex();
 
     [GeneratedRegex(@"\[\s*(?:HttpGet|HttpPost|Route)(?:Attribute)?\s*\(\s*[""'](?:[^""']*/)?logout[""'][^\)]*\)\s*\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex LogoutRouteRegex();

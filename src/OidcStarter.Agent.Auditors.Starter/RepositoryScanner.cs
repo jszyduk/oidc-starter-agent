@@ -1,6 +1,6 @@
 using OidcStarter.Agent.Core;
 
-namespace OidcStarter.Agent.Auditors.Hardening;
+namespace OidcStarter.Agent.Auditors.Starter;
 
 public sealed class RepositoryScanner
 {

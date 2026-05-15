@@ -1,10 +1,12 @@
-using OidcStarter.Agent.Auditors.Hardening.Rules;
+using OidcStarter.Agent.Auditors.Starter.Rules;
 using OidcStarter.Agent.Core;
 
 namespace OidcStarter.Agent.Tests;
 
 public sealed class HardeningRuleTests
 {
+    private const string TestRepositoryRoot = "/repo";
+
     [Fact]
     public void MeEndpointExistsRule_ReturnsNoFinding_WhenHttpGetMeAttributeExists()
     {
@@ -888,7 +890,7 @@ public sealed class HardeningRuleTests
     [Fact]
     public void AuthenticationCookieHttpOnlyRule_ReturnsNoFinding_WhenHttpOnlyIsConfigured()
     {
-        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+        var snapshot = Snapshot(new RepositoryFile("src/Backend/Program.cs", "src/Backend/Program.cs", """
             builder.Services.AddAuthentication().AddCookie(options =>
             {
                 options.Cookie.HttpOnly = true;
@@ -915,7 +917,7 @@ public sealed class HardeningRuleTests
     [Fact]
     public void AuthenticationCookieHttpOnlyRule_ReturnsFinding_WhenHttpOnlyOnlyAppearsInComment()
     {
-        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "// options.Cookie.HttpOnly = true;"));
+        var snapshot = Snapshot(new RepositoryFile("src/Backend/Program.cs", "src/Backend/Program.cs", "// options.Cookie.HttpOnly = true;"));
 
         var findings = new AuthenticationCookieHttpOnlyRule().Evaluate(snapshot);
 
@@ -933,9 +935,40 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void AuthenticationCookieHttpOnlyRule_ReturnsFinding_WhenPackageProjectExistsWithoutHttpOnlyEvenIfSampleConfiguresIt()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "builder.Services.AddAuthentication().AddCookie();"),
+            new RepositoryFile(
+                "src/Backend/Program.cs",
+                "src/Backend/Program.cs",
+                "options.Cookie.HttpOnly = true;"));
+
+        var findings = new AuthenticationCookieHttpOnlyRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieHttpOnlyRule_ReturnsNoFinding_WhenSampleBackendConfiguresHttpOnlyAndNoPackageProjectExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/Backend/Program.cs",
+            "src/Backend/Program.cs",
+            "options.Cookie.HttpOnly = true;"));
+
+        var findings = new AuthenticationCookieHttpOnlyRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void AuthenticationCookieSecurePolicyRule_ReturnsNoFinding_WhenSecurePolicyAlwaysIsConfigured()
     {
-        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+        var snapshot = Snapshot(new RepositoryFile("src/Backend/Program.cs", "src/Backend/Program.cs", """
             builder.Services.AddAuthentication().AddCookie(options =>
             {
                 options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
@@ -950,7 +983,7 @@ public sealed class HardeningRuleTests
     [Fact]
     public void AuthenticationCookieSecurePolicyRule_ReturnsNoFinding_WhenSecurePolicySameAsRequestIsConfigured()
     {
-        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+        var snapshot = Snapshot(new RepositoryFile("src/Backend/Program.cs", "src/Backend/Program.cs", """
             builder.Services.AddAuthentication().AddCookie(options =>
             {
                 options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
@@ -977,7 +1010,7 @@ public sealed class HardeningRuleTests
     [Fact]
     public void AuthenticationCookieSecurePolicyRule_ReturnsFinding_WhenSecurePolicyOnlyAppearsInComment()
     {
-        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "// options.Cookie.SecurePolicy = CookieSecurePolicy.Always;"));
+        var snapshot = Snapshot(new RepositoryFile("src/Backend/Program.cs", "src/Backend/Program.cs", "// options.Cookie.SecurePolicy = CookieSecurePolicy.Always;"));
 
         var findings = new AuthenticationCookieSecurePolicyRule().Evaluate(snapshot);
 
@@ -1005,9 +1038,40 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void AuthenticationCookieSecurePolicyRule_ReturnsFinding_WhenPackageProjectExistsWithoutSecurePolicyEvenIfSampleConfiguresIt()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "builder.Services.AddAuthentication().AddCookie();"),
+            new RepositoryFile(
+                "src/Backend/Program.cs",
+                "src/Backend/Program.cs",
+                "options.Cookie.SecurePolicy = CookieSecurePolicy.Always;"));
+
+        var findings = new AuthenticationCookieSecurePolicyRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSecurePolicyRule_ReturnsNoFinding_WhenSampleBackendConfiguresSecurePolicyAndNoPackageProjectExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/Backend/Program.cs",
+            "src/Backend/Program.cs",
+            "options.Cookie.SecurePolicy = CookieSecurePolicy.Always;"));
+
+        var findings = new AuthenticationCookieSecurePolicyRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void AuthenticationCookieSameSiteRule_ReturnsNoFinding_WhenSameSiteIsConfigured()
     {
-        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", """
+        var snapshot = Snapshot(new RepositoryFile("src/Backend/Program.cs", "src/Backend/Program.cs", """
             builder.Services.AddAuthentication().AddCookie(options =>
             {
                 options.Cookie.SameSite = SameSiteMode.Lax;
@@ -1034,7 +1098,7 @@ public sealed class HardeningRuleTests
     [Fact]
     public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenSameSiteOnlyAppearsInComment()
     {
-        var snapshot = Snapshot(new RepositoryFile("src/Program.cs", "src/Program.cs", "// options.Cookie.SameSite = SameSiteMode.Lax;"));
+        var snapshot = Snapshot(new RepositoryFile("src/Backend/Program.cs", "src/Backend/Program.cs", "// options.Cookie.SameSite = SameSiteMode.Lax;"));
 
         var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
 
@@ -1055,6 +1119,162 @@ public sealed class HardeningRuleTests
     public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenSameSiteOnlyAppearsInTestFile()
     {
         var snapshot = Snapshot(new RepositoryFile("src/AuthCookieTest.cs", "src/AuthCookieTest.cs", "options.Cookie.SameSite = SameSiteMode.Lax;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenSameSiteOnlyAppearsInSingularTestPath()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/test/SomeTest.cs",
+            "src/OidcStarter.AspNetCore.Bff/test/SomeTest.cs",
+            "options.Cookie.SameSite = SameSiteMode.Lax;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsNoFinding_WhenPackageAssignsSameSiteFromSettings()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "options.Cookie.SameSite = bffSettings.CookieSameSite;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsNoFinding_WhenPackageAssignsCorrelationAndNonceSameSiteFromSettings()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            options.CorrelationCookie.SameSite = bffSettings.CookieSameSite;
+            options.NonceCookie.SameSite = bffSettings.CookieSameSite;
+            """));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenCookieSameSitePropertyIsNotAssignedToSameSiteOption()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "var value = bffSettings.CookieSameSite;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenSameSiteModeUnspecifiedIsAssigned()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "options.Cookie.SameSite = SameSiteMode.Unspecified;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenPlaceholderValueIsAssigned()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "options.Cookie.SameSite = value;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenSameSiteOnlyAppearsInBffPackageTests()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff.Tests/SomeTest.cs",
+            "src/OidcStarter.AspNetCore.Bff.Tests/SomeTest.cs",
+            "options.Cookie.SameSite = bffSettings.CookieSameSite;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsNoFinding_WhenSampleBackendConfiguresSameSiteAndNoPackageProjectExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/Backend/Program.cs",
+            "src/Backend/Program.cs",
+            "options.Cookie.SameSite = SameSiteMode.Lax;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenUnrelatedProductionFileConfiguresSameSite()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/SomeOtherProject/Program.cs",
+            "src/SomeOtherProject/Program.cs",
+            "options.Cookie.SameSite = SameSiteMode.Lax;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsNoFinding_WhenPackageProjectConfiguresSameSite()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "options.Cookie.SameSite = bffSettings.CookieSameSite;"),
+            new RepositoryFile(
+                "src/Backend/Program.cs",
+                "src/Backend/Program.cs",
+                "// options.Cookie.SameSite = SameSiteMode.Lax;"));
+
+        var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSameSiteRule_ReturnsFinding_WhenPackageProjectExistsWithoutSameSiteEvenIfSampleConfiguresIt()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "builder.Services.AddAuthentication().AddCookie();"),
+            new RepositoryFile(
+                "src/Backend/Program.cs",
+                "src/Backend/Program.cs",
+                "options.Cookie.SameSite = SameSiteMode.Lax;"));
 
         var findings = new AuthenticationCookieSameSiteRule().Evaluate(snapshot);
 
@@ -1724,6 +1944,6 @@ public sealed class HardeningRuleTests
 
     private static RepositorySnapshot Snapshot(params RepositoryFile[] files)
     {
-        return new RepositorySnapshot("C:/repo", files);
+        return new RepositorySnapshot(TestRepositoryRoot, files);
     }
 }

@@ -1,4 +1,4 @@
-using OidcStarter.Agent.Auditors.Hardening;
+using OidcStarter.Agent.Auditors.Starter;
 using OidcStarter.Agent.Core;
 
 namespace OidcStarter.Agent.Tests;
@@ -22,6 +22,7 @@ public sealed class MarkdownReportWriterTests
 
         var markdown = new MarkdownReportWriter().Build(result);
 
+        Assert.Contains("# OidcStarter Starter Hardening Audit Report", markdown);
         Assert.Contains("#### HARDENING-013: No explicit authentication cookie SameSite configuration detected", markdown);
         Assert.Contains("- Severity: Medium", markdown);
         Assert.Contains("- Description: No likely authentication cookie SameSite configuration was detected.", markdown);

@@ -1,4 +1,4 @@
-using OidcStarter.Agent.Auditors.Hardening;
+using OidcStarter.Agent.Auditors.Starter;
 
 namespace OidcStarter.Agent.Tests;
 

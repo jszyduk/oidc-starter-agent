@@ -1,13 +1,13 @@
-using OidcStarter.Agent.Auditors.Hardening.Rules;
+using OidcStarter.Agent.Auditors.Starter.Rules;
 using OidcStarter.Agent.Core;
 
-namespace OidcStarter.Agent.Auditors.Hardening;
+namespace OidcStarter.Agent.Auditors.Starter;
 
-public sealed class HardeningAuditor : IAuditor
+public sealed class StarterHardeningAuditor : IAuditor
 {
     private readonly IReadOnlyList<IAuditRule> _rules;
 
-    public HardeningAuditor()
+    public StarterHardeningAuditor()
         : this(
         [
             new LoginEndpointExistsRule(),
@@ -30,12 +30,12 @@ public sealed class HardeningAuditor : IAuditor
     {
     }
 
-    public HardeningAuditor(IReadOnlyList<IAuditRule> rules)
+    public StarterHardeningAuditor(IReadOnlyList<IAuditRule> rules)
     {
         _rules = rules;
     }
 
-    public string Name => "OidcStarter Hardening Auditor";
+    public string Name => "OidcStarter Starter Hardening Auditor";
 
     public AuditResult Run(RepositorySnapshot snapshot)
     {

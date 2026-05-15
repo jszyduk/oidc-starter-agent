@@ -1,6 +1,6 @@
 using OidcStarter.Agent.Core;
 
-namespace OidcStarter.Agent.Auditors.Hardening.Rules;
+namespace OidcStarter.Agent.Auditors.Starter.Rules;
 
 public abstract class HardeningRuleBase : IAuditRule
 {

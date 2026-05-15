@@ -6,7 +6,7 @@ It analyzes `oidc-starter` from the outside as a local, read-only tool. This rep
 
 ## Current Status
 
-The current implemented auditor is the **OidcStarter Hardening Auditor**.
+The current implemented auditor is the **OidcStarter Starter Hardening Auditor**. It audits the `oidc-starter` starter/package repository itself, including the reusable BFF package and sample backend. A future consumer integration auditor may audit applications that use the package.
 
 Status: v1 foundation / deterministic analyzer only.
 
@@ -40,7 +40,7 @@ dotnet test .\tests\OidcStarter.Agent.Tests\OidcStarter.Agent.Tests.csproj
 
 - `OidcStarter.Agent.Cli`: Console entry point, command parsing, audit execution, and report output.
 - `OidcStarter.Agent.Core`: Shared models and interfaces for auditors and rules.
-- `OidcStarter.Agent.Auditors.Hardening`: Repository scanner, deterministic hardening rules, hardening auditor, and Markdown report writer.
+- `OidcStarter.Agent.Auditors.Starter`: Repository scanner, deterministic starter hardening rules, starter hardening auditor, and Markdown report writer.
 - `OidcStarter.Agent.Tests`: Unit tests for scanner and rules.
 
 ## Roadmap

@@ -1,4 +1,4 @@
-using OidcStarter.Agent.Auditors.Hardening;
+using OidcStarter.Agent.Auditors.Starter;
 
 return ProgramRunner.Run(args);
 
@@ -18,7 +18,7 @@ internal static class ProgramRunner
 
             var scanner = new RepositoryScanner();
             var snapshot = scanner.Scan(options.RepositoryPath);
-            var auditor = new HardeningAuditor();
+            var auditor = new StarterHardeningAuditor();
             var result = auditor.Run(snapshot);
 
             var outputPath = Path.GetFullPath(options.OutputPath);
@@ -43,7 +43,7 @@ internal static class ProgramRunner
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: dotnet run -- audit hardening --repo \"C:\\Repos\\oidc-starter\" --out \"audit-report.md\"");
+        Console.Error.WriteLine("Usage: dotnet run -- audit hardening --repo \"[FULL_PATH_TO_REPO]\\oidc-starter\" --out \"audit-report.md\"");
     }
 }
 

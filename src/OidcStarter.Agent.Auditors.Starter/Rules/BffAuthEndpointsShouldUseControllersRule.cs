@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using OidcStarter.Agent.Core;
 
-namespace OidcStarter.Agent.Auditors.Hardening.Rules;
+namespace OidcStarter.Agent.Auditors.Starter.Rules;
 
 public sealed partial class BffAuthEndpointsShouldUseControllersRule : HardeningRuleBase
 {

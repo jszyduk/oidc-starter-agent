@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using OidcStarter.Agent.Core;
 
-namespace OidcStarter.Agent.Auditors.Hardening.Detection;
+namespace OidcStarter.Agent.Auditors.Starter.Detection;
 
 public static partial class AspNetAntiforgeryDetector
 {

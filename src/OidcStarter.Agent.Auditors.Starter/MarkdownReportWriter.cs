@@ -1,7 +1,7 @@
 using System.Text;
 using OidcStarter.Agent.Core;
 
-namespace OidcStarter.Agent.Auditors.Hardening;
+namespace OidcStarter.Agent.Auditors.Starter;
 
 public sealed class MarkdownReportWriter
 {
@@ -26,7 +26,7 @@ public sealed class MarkdownReportWriter
     {
         var builder = new StringBuilder();
 
-        builder.AppendLine("# OidcStarter Hardening Audit Report");
+        builder.AppendLine("# OidcStarter Starter Hardening Audit Report");
         builder.AppendLine();
         builder.AppendLine($"- Auditor: {result.AuditorName}");
         builder.AppendLine($"- Generated: {DateTimeOffset.UtcNow:O}");

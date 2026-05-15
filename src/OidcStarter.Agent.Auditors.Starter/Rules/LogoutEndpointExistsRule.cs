@@ -1,7 +1,7 @@
-using OidcStarter.Agent.Auditors.Hardening.Detection;
+using OidcStarter.Agent.Auditors.Starter.Detection;
 using OidcStarter.Agent.Core;
 
-namespace OidcStarter.Agent.Auditors.Hardening.Rules;
+namespace OidcStarter.Agent.Auditors.Starter.Rules;
 
 public sealed class LogoutEndpointExistsRule : HardeningRuleBase
 {

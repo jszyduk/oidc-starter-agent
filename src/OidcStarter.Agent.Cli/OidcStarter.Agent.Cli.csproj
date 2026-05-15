@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\OidcStarter.Agent.Core\OidcStarter.Agent.Core.csproj" />
-    <ProjectReference Include="..\OidcStarter.Agent.Auditors.Hardening\OidcStarter.Agent.Auditors.Hardening.csproj" />
+    <ProjectReference Include="..\OidcStarter.Agent.Auditors.Starter\OidcStarter.Agent.Auditors.Starter.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
