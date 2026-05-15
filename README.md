@@ -31,6 +31,34 @@ dotnet run --project src/OidcStarter.Agent.Cli -- audit starter --repo "C:\Repos
 
 `audit starter` runs the Starter Hardening Auditor against the `oidc-starter` starter/package repository. `audit hardening` is kept as a backward-compatible alias for the same auditor. A Consumer Integration Auditor is future work and is not implemented yet.
 
+## Starter Hardening Auditor v1 Checkpoint
+
+This repository currently provides a Starter Hardening Auditor for the `oidc-starter` repository itself. The preferred command is `audit starter`; `audit hardening` remains available as a backward-compatible alias.
+
+The auditor is package-aware:
+
+- `src/OidcStarter.AspNetCore.Bff` is treated as the reusable NuGet package and primary source of truth for BFF registration/configuration.
+- `src/Backend` is treated as a sample/example consumer.
+- `src/OidcStarter.AspNetCore.Bff.Tests` is treated as tests/evidence, not production configuration.
+
+The latest manual run against the real `oidc-starter` repository produced no findings. Generated audit reports are runtime artifacts and should not be committed as latest state.
+
+Implemented starter-auditor coverage includes:
+
+- BFF login/logout/me endpoint presence.
+- MVC controller requirement for BFF auth endpoints.
+- Browser token storage checks.
+- BFF frontend session/cookie behavior.
+- Local logout clearing the application session/cookie.
+- IdP/OIDC logout awareness through implementation evidence or documented caveats.
+- Authentication cookie `HttpOnly`, `SecurePolicy`, and `SameSite` configuration.
+- BFF antiforgery flow detection.
+- ASP.NET Core authentication/authorization middleware order.
+- Local Keycloak setup and development-only labeling.
+- Production hardening documentation.
+
+This coverage is deterministic and heuristic; it is not a formal security compliance claim.
+
 ## Development
 
 ```powershell
@@ -47,8 +75,10 @@ dotnet test .\tests\OidcStarter.Agent.Tests\OidcStarter.Agent.Tests.csproj
 
 ## Roadmap
 
-- Improve deterministic hardening rules.
+- Unsafe HTTP method antiforgery coverage.
+- CORS explicit origin checks.
+- Secrets scanning.
+- SPA-focused rules.
+- Consumer Integration Auditor for applications using the NuGet package.
 - Add JSON report output.
-- Add LLM report interpretation.
-- Add Azure OpenAI-compatible abstraction later.
-- Add more auditors in separate namespaces and projects.
+- Optional future LLM interpretation layer for explaining findings and prioritizing backlog.
