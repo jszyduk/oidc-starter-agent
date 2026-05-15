@@ -1282,6 +1282,295 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void AuthenticationCookieNameRule_ReturnsNoFinding_WhenPackageConfiguresCookieNameString()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.Name = "__Host-OidcStarter";
+            });
+            """));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsNoFinding_WhenPackageAssignsCookieNameFromSettings()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.Name = bffSettings.CookieName;
+            });
+            """));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsNoFinding_WhenCookieBuilderNameHasAuthCookieContext()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie = new CookieBuilder
+                {
+                    Name = "__Host-OidcStarter"
+                };
+            });
+            """));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenOptionsCookieNameHasNoAuthCookieContext()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/SomeOptions.cs",
+            "src/OidcStarter.AspNetCore.Bff/SomeOptions.cs",
+            """
+            public void Configure()
+            {
+                options.Cookie.Name = "__Host-OidcStarter";
+            }
+            """));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenCookieNameIsEmptyString()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.Name = "";
+            });
+            """));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenCookieNameIsStringEmpty()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.Name = string.Empty;
+            });
+            """));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenCookieNameIsNullOrDefault()
+    {
+        var nullSnapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.Name = null;
+            });
+            """));
+        var defaultSnapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.Name = default;
+            });
+            """));
+
+        Assert.Single(new AuthenticationCookieNameRule().Evaluate(nullSnapshot));
+        Assert.Single(new AuthenticationCookieNameRule().Evaluate(defaultSnapshot));
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenAssignmentOnlyAppearsInRawStringLiteral()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "\"\"\"\r\nservices.AddAuthentication().AddCookie(options =>\r\n{\r\n    options.Cookie.Name = \"__Host-OidcStarter\";\r\n});\r\n\"\"\";"));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenAntiforgeryCookieNameIsConfigured()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Program.cs",
+            "src/OidcStarter.AspNetCore.Bff/Program.cs",
+            """
+            services.AddAntiforgery(options =>
+            {
+                options.Cookie.Name = "XSRF-TOKEN";
+            });
+            """));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenOnlyBareCookieNamePropertyExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "public string CookieName { get; set; }"));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-020", finding.RuleId);
+        Assert.Equal(FindingSeverity.Low, finding.Severity);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenCookieNameIsOnlyRead()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "var value = bffSettings.CookieName;"));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenAssignmentOnlyAppearsInComment()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "// options.Cookie.Name = \"__Host-OidcStarter\";"));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenAssignmentOnlyAppearsInStringLiteral()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "var sample = \"options.Cookie.Name = \\\"__Host-OidcStarter\\\";\";"));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenOnlyResponseCookieAppendExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Controller.cs",
+            "src/OidcStarter.AspNetCore.Bff/Controller.cs",
+            "Response.Cookies.Append(\"__Host-OidcStarter\", value);"));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenPackageExistsWithoutNameEvenIfSampleConfiguresIt()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "builder.Services.AddAuthentication().AddCookie();"),
+            new RepositoryFile(
+                "src/Backend/Program.cs",
+                "src/Backend/Program.cs",
+                """
+                services.AddAuthentication().AddCookie(options =>
+                {
+                    options.Cookie.Name = "__Host-OidcStarter";
+                });
+                """));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsNoFinding_WhenSampleConfiguresNameAndNoPackageProjectExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/Backend/Program.cs",
+            "src/Backend/Program.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Cookie.Name = "__Host-OidcStarter";
+            });
+            """));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieNameRule_ReturnsFinding_WhenNameOnlyAppearsInTests()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff.Tests/SomeTest.cs",
+            "src/OidcStarter.AspNetCore.Bff.Tests/SomeTest.cs",
+            "options.Cookie.Name = \"__Host-OidcStarter\";"));
+
+        var findings = new AuthenticationCookieNameRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
     public void AuthenticationCookieLifetimeRule_ReturnsNoFinding_WhenPackageConfiguresExpireTimeSpan()
     {
         var snapshot = Snapshot(new RepositoryFile(
