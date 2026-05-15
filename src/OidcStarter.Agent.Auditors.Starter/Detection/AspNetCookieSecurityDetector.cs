@@ -20,6 +20,16 @@ public static partial class AspNetCookieSecurityDetector
         return StarterCookieConfigurationFiles(snapshot).Any(file => HasSameSiteAssignment(RemoveComments(file.Content)));
     }
 
+    public static bool HasExplicitCookieLifetimeConfiguration(RepositorySnapshot snapshot)
+    {
+        return StarterCookieConfigurationFiles(snapshot).Any(file => HasCookieLifetimeAssignment(PrepareCodeForCookieMatching(file.Content)));
+    }
+
+    public static bool HasExplicitSlidingExpirationConfiguration(RepositorySnapshot snapshot)
+    {
+        return StarterCookieConfigurationFiles(snapshot).Any(file => HasSlidingExpirationAssignment(PrepareCodeForCookieMatching(file.Content)));
+    }
+
     public static bool LogoutClearsLocalCookieSession(RepositorySnapshot snapshot)
     {
         return CSharpFiles(snapshot)
@@ -59,6 +69,13 @@ public static partial class AspNetCookieSecurityDetector
         return LineCommentRegex().Replace(withoutBlockComments, string.Empty);
     }
 
+    private static string PrepareCodeForCookieMatching(string content)
+    {
+        var withoutComments = RemoveComments(content);
+        var withoutVerbatimStrings = VerbatimStringLiteralRegex().Replace(withoutComments, "\"\"");
+        return RegularStringLiteralRegex().Replace(withoutVerbatimStrings, "\"\"");
+    }
+
     private static bool HasSameSiteAssignment(string content)
     {
         return SameSiteAssignmentRegex()
@@ -72,6 +89,33 @@ public static partial class AspNetCookieSecurityDetector
 
         return SameSiteModeValueRegex().IsMatch(trimmedValue)
             || CookieSameSiteSettingRegex().IsMatch(trimmedValue);
+    }
+
+    private static bool HasCookieLifetimeAssignment(string content)
+    {
+        return ExplicitCookieLifetimeRegex().IsMatch(content)
+            || GenericCookieLifetimeRegex()
+                .Matches(content)
+                .Any(match => HasNearbyAuthenticationCookieContext(content, match.Index));
+    }
+
+    private static bool HasSlidingExpirationAssignment(string content)
+    {
+        return ExplicitSlidingExpirationRegex().IsMatch(content)
+            || GenericSlidingExpirationRegex()
+                .Matches(content)
+                .Any(match => HasNearbyAuthenticationCookieContext(content, match.Index));
+    }
+
+    private static bool HasNearbyAuthenticationCookieContext(string content, int matchIndex)
+    {
+        const int WindowSize = 400;
+
+        var start = Math.Max(0, matchIndex - WindowSize);
+        var length = Math.Min(content.Length - start, WindowSize * 2);
+        var window = content.Substring(start, length);
+
+        return AuthenticationCookieContextRegex().IsMatch(window);
     }
 
     private static IEnumerable<string> GetLikelyLogoutActionBodies(string content)
@@ -138,6 +182,21 @@ public static partial class AspNetCookieSecurityDetector
     [GeneratedRegex(@"\b(?:new\s+CookieBuilder\s*\{[^}]*\bSameSite|(?:\b\w+|\))?\.?(?:Cookie|CorrelationCookie|NonceCookie)\.SameSite)\s*=\s*(?<value>[^,;}\r\n]+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline)]
     private static partial Regex SameSiteAssignmentRegex();
 
+    [GeneratedRegex(@"\b(?:options|cookieOptions|authCookieOptions|cookieAuthenticationOptions)\.ExpireTimeSpan\s*=\s*[^,;}\r\n]+|\b(?:options|cookieOptions|authCookieOptions|cookieAuthenticationOptions)\.Cookie\.(?:MaxAge|Expiration)\s*=\s*[^,;}\r\n]+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ExplicitCookieLifetimeRegex();
+
+    [GeneratedRegex(@"\b(?:ExpireTimeSpan|MaxAge)\s*=\s*[^,;}\r\n]+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex GenericCookieLifetimeRegex();
+
+    [GeneratedRegex(@"\b(?:options|cookieOptions|authCookieOptions|cookieAuthenticationOptions)\.SlidingExpiration\s*=\s*(?:true|false|(?:\w+\.)*(?:CookieSlidingExpiration|SlidingExpiration))\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ExplicitSlidingExpirationRegex();
+
+    [GeneratedRegex(@"\bSlidingExpiration\s*=\s*(?:true|false|(?:\w+\.)*(?:CookieSlidingExpiration|SlidingExpiration))\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex GenericSlidingExpirationRegex();
+
+    [GeneratedRegex(@"\b(?:AddCookie|CookieAuthenticationOptions|CookieBuilder|ConfigureApplicationCookie|AuthenticationScheme|CookieAuthenticationDefaults)\b|\boptions\.Cookie\b|\bCookie\.(?:SameSite|HttpOnly|SecurePolicy)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex AuthenticationCookieContextRegex();
+
     [GeneratedRegex(@"^SameSiteMode\.(?:Strict|Lax|None)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SameSiteModeValueRegex();
 
@@ -158,4 +217,10 @@ public static partial class AspNetCookieSecurityDetector
 
     [GeneratedRegex(@"//.*$", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
     private static partial Regex LineCommentRegex();
+
+    [GeneratedRegex(@"(?:\$@|@\$|@)""(?:""""|[^""])*""", RegexOptions.CultureInvariant)]
+    private static partial Regex VerbatimStringLiteralRegex();
+
+    [GeneratedRegex(@"\$?""(?:\\.|[^""\\])*""", RegexOptions.CultureInvariant)]
+    private static partial Regex RegularStringLiteralRegex();
 }

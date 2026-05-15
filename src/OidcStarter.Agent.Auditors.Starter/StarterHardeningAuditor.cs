@@ -18,6 +18,8 @@ public sealed class StarterHardeningAuditor : IAuditor
             new AuthenticationCookieHttpOnlyRule(),
             new AuthenticationCookieSecurePolicyRule(),
             new AuthenticationCookieSameSiteRule(),
+            new AuthenticationCookieLifetimeRule(),
+            new AuthenticationCookieSlidingExpirationRule(),
             new BffAntiforgeryFlowRule(),
             new AspNetAuthenticationAuthorizationMiddlewareOrderRule(),
             new NoTokenStorageInFrontendRule(),

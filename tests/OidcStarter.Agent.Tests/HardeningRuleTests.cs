@@ -1282,6 +1282,293 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void AuthenticationCookieLifetimeRule_ReturnsNoFinding_WhenPackageConfiguresExpireTimeSpan()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "options.ExpireTimeSpan = TimeSpan.FromHours(8);"));
+
+        var findings = new AuthenticationCookieLifetimeRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeRule_ReturnsNoFinding_WhenPackageAssignsExpireTimeSpanFromSettings()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "options.ExpireTimeSpan = bffSettings.CookieExpireTimeSpan;"));
+
+        var findings = new AuthenticationCookieLifetimeRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeRule_ReturnsNoFinding_WhenPackageConfiguresCookieMaxAge()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "options.Cookie.MaxAge = bffSettings.CookieMaxAge;"));
+
+        var findings = new AuthenticationCookieLifetimeRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeRule_ReturnsFinding_WhenOnlyBareLifetimePropertyExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "public TimeSpan CookieExpireTimeSpan { get; set; }"));
+
+        var findings = new AuthenticationCookieLifetimeRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-018", finding.RuleId);
+        Assert.Equal(FindingSeverity.Medium, finding.Severity);
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeRule_ReturnsFinding_WhenAssignmentOnlyAppearsInComment()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "// options.ExpireTimeSpan = TimeSpan.FromHours(8);"));
+
+        var findings = new AuthenticationCookieLifetimeRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeRule_ReturnsFinding_WhenUnrelatedExpireTimeSpanIsConfigured()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/CacheOptions.cs",
+            "src/OidcStarter.AspNetCore.Bff/CacheOptions.cs",
+            "cacheOptions.ExpireTimeSpan = TimeSpan.FromMinutes(5);"));
+
+        var findings = new AuthenticationCookieLifetimeRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeRule_ReturnsFinding_WhenUnrelatedMaxAgeIsConfigured()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/CacheOptions.cs",
+            "src/OidcStarter.AspNetCore.Bff/CacheOptions.cs",
+            "cacheOptions.MaxAge = TimeSpan.FromMinutes(5);"));
+
+        var findings = new AuthenticationCookieLifetimeRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeRule_ReturnsFinding_WhenAssignmentOnlyAppearsInStringLiteral()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "var sample = \"options.ExpireTimeSpan = TimeSpan.FromHours(8);\";"));
+
+        var findings = new AuthenticationCookieLifetimeRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeRule_ReturnsNoFinding_WhenGenericInitializerHasAuthCookieContext()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Events = new CookieAuthenticationEvents();
+                ExpireTimeSpan = TimeSpan.FromHours(8);
+            });
+            """));
+
+        var findings = new AuthenticationCookieLifetimeRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSlidingExpirationRule_ReturnsNoFinding_WhenSlidingExpirationIsTrue()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "options.SlidingExpiration = true;"));
+
+        var findings = new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSlidingExpirationRule_ReturnsNoFinding_WhenSlidingExpirationIsFalse()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "options.SlidingExpiration = false;"));
+
+        var findings = new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSlidingExpirationRule_ReturnsNoFinding_WhenSlidingExpirationUsesSettings()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "options.SlidingExpiration = bffSettings.CookieSlidingExpiration;"));
+
+        var findings = new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSlidingExpirationRule_ReturnsFinding_WhenOnlyBarePropertyExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "public bool CookieSlidingExpiration { get; set; }"));
+
+        var findings = new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-019", finding.RuleId);
+        Assert.Equal(FindingSeverity.Low, finding.Severity);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSlidingExpirationRule_ReturnsFinding_WhenAssignmentOnlyAppearsInComment()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "// options.SlidingExpiration = true;"));
+
+        var findings = new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSlidingExpirationRule_ReturnsFinding_WhenUnrelatedSlidingExpirationIsConfigured()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/CacheOptions.cs",
+            "src/OidcStarter.AspNetCore.Bff/CacheOptions.cs",
+            "cacheOptions.SlidingExpiration = true;"));
+
+        var findings = new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSlidingExpirationRule_ReturnsFinding_WhenAssignmentOnlyAppearsInStringLiteral()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "src/OidcStarter.AspNetCore.Bff/Options.cs",
+            "var sample = \"options.SlidingExpiration = true;\";"));
+
+        var findings = new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieSlidingExpirationRule_ReturnsNoFinding_WhenGenericInitializerHasAuthCookieContext()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+            """
+            services.AddAuthentication().AddCookie(options =>
+            {
+                options.Events = new CookieAuthenticationEvents();
+                SlidingExpiration = false;
+            });
+            """));
+
+        var findings = new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeAndSlidingRules_ReturnFindings_WhenPackageExistsWithoutSettingsEvenIfSampleConfiguresThem()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Extensions/OidcStarterBffServiceCollectionExtensions.cs",
+                "builder.Services.AddAuthentication().AddCookie();"),
+            new RepositoryFile(
+                "src/Backend/Program.cs",
+                "src/Backend/Program.cs",
+                """
+                options.ExpireTimeSpan = TimeSpan.FromHours(8);
+                options.SlidingExpiration = false;
+                """));
+
+        Assert.Single(new AuthenticationCookieLifetimeRule().Evaluate(snapshot));
+        Assert.Single(new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot));
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeAndSlidingRules_ReturnNoFindings_WhenSampleConfiguresSettingsAndNoPackageProjectExists()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/Backend/Program.cs",
+            "src/Backend/Program.cs",
+            """
+            options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.SlidingExpiration = false;
+            """));
+
+        Assert.Empty(new AuthenticationCookieLifetimeRule().Evaluate(snapshot));
+        Assert.Empty(new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot));
+    }
+
+    [Fact]
+    public void AuthenticationCookieLifetimeAndSlidingRules_ReturnFindings_WhenSettingsOnlyAppearInTests()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff.Tests/SomeTest.cs",
+            "src/OidcStarter.AspNetCore.Bff.Tests/SomeTest.cs",
+            """
+            options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            options.SlidingExpiration = false;
+            """));
+
+        Assert.Single(new AuthenticationCookieLifetimeRule().Evaluate(snapshot));
+        Assert.Single(new AuthenticationCookieSlidingExpirationRule().Evaluate(snapshot));
+    }
+
+    [Fact]
     public void LogoutClearsLocalSessionRule_ReturnsNoFinding_WhenLogoutCallsSignOutAsync()
     {
         var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
