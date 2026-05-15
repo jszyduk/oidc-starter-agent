@@ -1443,6 +1443,322 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsNoFinding_WhenLogoutEndpointIsMissing()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpGet("me")]
+                public IActionResult Me() => Ok();
+            }
+            """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsNoFinding_WhenLogoutEndpointOnlyAppearsInComments()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                // [HttpPost("logout")]
+                // public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsNoFinding_WhenLogoutEndpointOnlyAppearsInTestFile()
+    {
+        var snapshot = Snapshot(new RepositoryFile("tests/AuthControllerTests.cs", "tests/AuthControllerTests.cs", """
+            public class AuthControllerTests
+            {
+                [HttpPost("logout")]
+                public async Task<IActionResult> Logout()
+                {
+                    await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
+                    return Ok();
+                }
+            }
+            """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsFinding_WhenLogoutIsLocalOnlyAndUndocumented()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public async Task<IActionResult> Logout()
+                {
+                    await HttpContext.SignOutAsync();
+                    return Ok();
+                }
+            }
+            """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-017", finding.RuleId);
+        Assert.Equal(FindingSeverity.Medium, finding.Severity);
+        Assert.Contains("BFF-ARCH-008", finding.Recommendation);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsNoFinding_WhenLogoutSignsOutOidcScheme()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public async Task<IActionResult> Logout()
+                {
+                    await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
+                    return Ok();
+                }
+            }
+            """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsNoFinding_WhenLogoutReturnsOidcSignOutResult()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout()
+                {
+                    return SignOut(new AuthenticationProperties { RedirectUri = "/" }, OpenIdConnectDefaults.AuthenticationScheme);
+                }
+            }
+            """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsFinding_WhenOnlySignedOutCallbackPathIsConfigured()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public IActionResult Logout()
+                    {
+                        return SignOut(CookieAuthenticationDefaults.AuthenticationScheme);
+                    }
+                }
+                """),
+            new RepositoryFile("src/Oidc.cs", "src/Oidc.cs", """
+                builder.Services.AddAuthentication().AddOpenIdConnect(options =>
+                {
+                    options.SignedOutCallbackPath = "/signout-callback-oidc";
+                });
+                """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsNoFinding_WhenCallbackPathAndOidcSignOutAreConfigured()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public async Task<IActionResult> Logout()
+                    {
+                        await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
+                        return Ok();
+                    }
+                }
+                """),
+            new RepositoryFile("src/Oidc.cs", "src/Oidc.cs", """
+                builder.Services.AddAuthentication().AddOpenIdConnect(options =>
+                {
+                    options.SignedOutCallbackPath = "/signout-callback-oidc";
+                });
+                """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsNoFinding_WhenRedirectToIdentityProviderForSignOutIsConfigured()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public async Task<IActionResult> Logout()
+                    {
+                        await HttpContext.SignOutAsync();
+                        return Ok();
+                    }
+                }
+                """),
+            new RepositoryFile("src/Oidc.cs", "src/Oidc.cs", """
+                builder.Services.AddAuthentication().AddOpenIdConnect(options =>
+                {
+                    options.Events.OnRedirectToIdentityProviderForSignOut = context => Task.CompletedTask;
+                });
+                """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsNoFinding_WhenDocumentationExplainsLocalVersusProviderLogout()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public async Task<IActionResult> Logout()
+                    {
+                        await HttpContext.SignOutAsync();
+                        return Ok();
+                    }
+                }
+                """),
+            new RepositoryFile("README.md", "README.md", """
+                The BFF logout clears the local application cookie. Production applications should decide whether to also sign out from the upstream identity provider / OIDC provider session and configure post-logout redirect behavior as needed.
+                """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsFinding_WhenDocumentationIsGeneric()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public async Task<IActionResult> Logout()
+                    {
+                        await HttpContext.SignOutAsync();
+                        return Ok();
+                    }
+                }
+                """),
+            new RepositoryFile("README.md", "README.md", "Logout is supported."));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsFinding_WhenOidcSchemeMentionIsOutsideLogoutContext()
+    {
+        var snapshot = Snapshot(new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+            public class AuthController : ControllerBase
+            {
+                private readonly string scheme = OpenIdConnectDefaults.AuthenticationScheme;
+
+                [HttpPost("logout")]
+                public async Task<IActionResult> Logout()
+                {
+                    await HttpContext.SignOutAsync();
+                    return Ok();
+                }
+            }
+            """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsFinding_WhenOidcSignOutOnlyAppearsInTestFile()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public async Task<IActionResult> Logout()
+                    {
+                        await HttpContext.SignOutAsync();
+                        return Ok();
+                    }
+                }
+                """),
+            new RepositoryFile("tests/AuthControllerTests.cs", "tests/AuthControllerTests.cs", """
+                public class AuthControllerTests
+                {
+                    public async Task Logout()
+                    {
+                        await HttpContext.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
+                    }
+                }
+                """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void OidcIdentityProviderLogoutAwarenessRule_ReturnsFinding_WhenOnlySecurityBaselineDocumentsIdpLogout()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("src/AuthController.cs", "src/AuthController.cs", """
+                public class AuthController : ControllerBase
+                {
+                    [HttpPost("logout")]
+                    public async Task<IActionResult> Logout()
+                    {
+                        await HttpContext.SignOutAsync();
+                        return Ok();
+                    }
+                }
+                """),
+            new RepositoryFile("docs/security-baseline-v1.md", "docs/security-baseline-v1.md", """
+                Logout should account for identity-provider sign-out and local cookie behavior.
+                """));
+
+        var findings = new OidcIdentityProviderLogoutAwarenessRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
     public void ReadmeExistsRule_ReturnsFinding_WhenReadmeIsMissing()
     {
         var snapshot = Snapshot(

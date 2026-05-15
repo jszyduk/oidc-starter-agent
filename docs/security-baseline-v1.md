@@ -88,7 +88,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | BFF-ARCH-005 | Level 1 | BFF | BFF architecture | Login endpoint should exist. | The starter should expose a clear backend entry point for initiating sign-in. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Detect MVC controller route/action for login. | High | Implemented |
 | BFF-ARCH-006 | Level 1 | BFF | BFF architecture | Logout endpoint should exist. | The starter should expose a clear backend entry point for ending the local session. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Detect MVC controller route/action for logout. | High | Implemented |
 | BFF-ARCH-007 | Level 1 | BFF | BFF architecture | Logout should clear local application session/cookie. | Logout that leaves the application cookie intact does not end the local authenticated session. | Microsoft ASP.NET Core security guidance / OWASP OAuth2 | Scan logout action for sign-out calls against local cookie scheme. | High | Implemented |
-| BFF-ARCH-008 | Level 2 | BFF | BFF architecture | Logout should account for identity-provider sign-out where applicable. | Depending on the provider and app model, users may expect logout to end or coordinate the upstream identity provider session. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Scan logout flow and docs for OIDC sign-out behavior, callback paths, or explicit caveats. | Medium | Planned |
+| BFF-ARCH-008 | Level 2 | BFF | BFF architecture | Logout should account for identity-provider sign-out where applicable. | Depending on the provider and app model, users may expect logout to end or coordinate the upstream identity provider session. | OAuth 2.0 Security BCP / Microsoft ASP.NET Core security guidance | Scan logout flow and docs for OIDC sign-out behavior, callback paths, or explicit caveats. | Medium | Implemented |
 | BFF-COOKIE-001 | Level 1 | BFF | Cookies and session security | Authentication cookie should be HttpOnly. | HttpOnly reduces cookie exposure to frontend JavaScript. | Microsoft ASP.NET Core security guidance / OWASP CSRF | Scan cookie authentication options for `HttpOnly` configuration or framework defaults plus documentation. | High | Implemented |
 | BFF-COOKIE-002 | Level 1 | BFF | Cookies and session security | Authentication cookie should use Secure in production. | Secure cookies prevent transmission over plain HTTP in production. | Microsoft ASP.NET Core security guidance | Scan cookie options, environment-specific config, and production docs for `SecurePolicy`. | High | Implemented |
 | BFF-COOKIE-003 | Level 1 | BFF | Cookies and session security | SameSite should be configured intentionally. | SameSite affects CSRF resistance and OIDC redirect compatibility; accidental defaults can break or weaken behavior. | Microsoft ASP.NET Core security guidance / OWASP CSRF | Scan cookie and correlation cookie options for SameSite values and explanatory docs. | Medium | Implemented |
@@ -141,6 +141,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-014 | ASPNET-HOST-001 | Implemented: checks likely ASP.NET Core pipeline files for UseAuthentication before UseAuthorization and reports missing UseAuthentication when UseAuthorization is present. Static and heuristic. |
 | HARDENING-015 | BFF-ARCH-002 | Implemented: detects suspicious browser token or bearer-auth handling in frontend code that appears to participate in BFF mode, while ignoring clearly SPA-specific files. Static and heuristic. |
 | HARDENING-016 | BFF-CONFIG-004 / TEST-READINESS-005 | Implemented for BFF-CONFIG-004 and partial for TEST-READINESS-005: checks README/docs for likely production hardening notes and concrete OIDC/BFF hardening topics, while ignoring analyzer baseline docs and generated reports. Static and heuristic. |
+| HARDENING-017 | BFF-ARCH-008 | Implemented: checks for likely OIDC/IdP sign-out implementation or documentation explaining local-vs-provider logout behavior. Static and heuristic. |
 
 ## Future Analyzer Implementation Notes
 
@@ -161,7 +162,6 @@ Rules should prefer architectural and security requirements over current impleme
 ### BFF candidates
 
 - Detect whether unsafe HTTP methods are covered by antiforgery protection.
-- Detect whether logout accounts for identity-provider sign-out where applicable.
 
 ### SPA candidates
 

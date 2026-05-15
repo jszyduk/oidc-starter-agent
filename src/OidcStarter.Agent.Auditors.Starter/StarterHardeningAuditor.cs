@@ -14,6 +14,7 @@ public sealed class StarterHardeningAuditor : IAuditor
             new LogoutEndpointExistsRule(),
             new MeEndpointExistsRule(),
             new LogoutClearsLocalSessionRule(),
+            new OidcIdentityProviderLogoutAwarenessRule(),
             new AuthenticationCookieHttpOnlyRule(),
             new AuthenticationCookieSecurePolicyRule(),
             new AuthenticationCookieSameSiteRule(),
