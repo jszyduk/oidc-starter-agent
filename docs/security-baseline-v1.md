@@ -145,7 +145,7 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-018 | BFF-COOKIE-005 | Implemented: checks package-aware authentication cookie lifetime/session duration configuration. Static and heuristic. |
 | HARDENING-019 | BFF-COOKIE-006 | Implemented: checks package-aware explicit sliding expiration configuration. Static and heuristic. |
 | HARDENING-020 | BFF-COOKIE-004 | Implemented: checks package-aware explicit authentication cookie name configuration. Static and heuristic. |
-| HARDENING-021 | BFF-CSRF-004 | Implemented: checks package-aware unsafe MVC endpoints for likely antiforgery protection through action/controller attributes, global MVC filters, or clear global antiforgery signals. Static and heuristic. |
+| HARDENING-021 | BFF-CSRF-004 | Implemented: checks package-aware unsafe MVC endpoints for likely antiforgery protection through standard or oidc-starter action/controller antiforgery attributes, global MVC filters, or clear global antiforgery signals. Static and heuristic. |
 
 ## Future Analyzer Implementation Notes
 

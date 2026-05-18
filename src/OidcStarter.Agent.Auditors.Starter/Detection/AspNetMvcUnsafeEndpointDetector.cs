@@ -217,7 +217,7 @@ public static partial class AspNetMvcUnsafeEndpointDetector
     [GeneratedRegex(@"(?:\s*\[[^\]]+\]\s*)+$", RegexOptions.CultureInvariant)]
     private static partial Regex AttributeBlockBeforeDeclarationRegex();
 
-    [GeneratedRegex(@"\[\s*(?:AutoValidateAntiforgeryToken|ValidateAntiForgeryToken)(?:Attribute)?(?:\s*\([^\)]*\))?\s*\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\[\s*(?:AutoValidateAntiforgeryToken|ValidateAntiForgeryToken|OidcStarterValidateAntiforgeryToken)(?:Attribute)?(?:\s*\([^\)]*\))?\s*\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex AntiforgeryAttributeRegex();
 
     [GeneratedRegex(@"\[\s*IgnoreAntiforgeryToken(?:Attribute)?(?:\s*\([^\)]*\))?\s*\]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]

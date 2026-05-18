@@ -30,7 +30,7 @@ public sealed class UnsafeHttpMethodsAntiforgeryCoverageRule : HardeningRuleBase
         return [Finding(
             FindingSeverity.High,
             $"One or more unsafe MVC endpoints were detected without likely antiforgery coverage. Examples: {examples}.{ignoredPhrase}",
-            "Baseline BFF-CSRF-004: protect unsafe browser-to-BFF endpoints such as POST, PUT, PATCH, and DELETE with antiforgery validation, for example via ValidateAntiForgeryToken, AutoValidateAntiforgeryToken, or a global MVC antiforgery filter.",
+            "Baseline BFF-CSRF-004: protect unsafe browser-to-BFF endpoints such as POST, PUT, PATCH, and DELETE with antiforgery validation, for example via standard antiforgery attributes, OidcStarterValidateAntiforgeryToken, or a global MVC antiforgery filter.",
             result.UncoveredEndpoints[0].FilePath)];
     }
 }

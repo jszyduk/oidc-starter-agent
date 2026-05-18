@@ -283,6 +283,26 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenPostEndpointHasOidcStarterValidateAntiforgeryToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                [OidcStarterValidateAntiforgeryToken]
+                public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenAcceptVerbsPostIsUsed()
     {
         var snapshot = Snapshot(new RepositoryFile(
@@ -348,6 +368,26 @@ public sealed class HardeningRuleTests
             "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
             """
             [AutoValidateAntiforgeryToken]
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsNoFinding_WhenControllerHasOidcStarterValidateAntiforgeryToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            [OidcStarterValidateAntiforgeryToken]
             public class AuthController : ControllerBase
             {
                 [HttpPost("logout")]
@@ -477,6 +517,70 @@ public sealed class HardeningRuleTests
                 public IActionResult Logout() => Ok();
 
                 // [ValidateAntiForgeryToken]
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenOnlyCommentHasOidcStarterValidateAntiforgeryToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout() => Ok();
+
+                // [OidcStarterValidateAntiforgeryToken]
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenOnlyStringHasOidcStarterValidateAntiforgeryToken()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                public IActionResult Logout()
+                {
+                    var sample = "[OidcStarterValidateAntiforgeryToken]";
+                    return Ok();
+                }
+            }
+            """));
+
+        var findings = new UnsafeHttpMethodsAntiforgeryCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void UnsafeHttpMethodsAntiforgeryCoverageRule_ReturnsFinding_WhenPostEndpointHasUnknownAntiforgeryLikeAttribute()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            "src/OidcStarter.AspNetCore.Bff/AuthController.cs",
+            """
+            public class AuthController : ControllerBase
+            {
+                [HttpPost("logout")]
+                [SomeOtherAntiforgeryToken]
+                public IActionResult Logout() => Ok();
             }
             """));
 
