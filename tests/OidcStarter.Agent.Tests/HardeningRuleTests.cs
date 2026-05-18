@@ -1251,6 +1251,431 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsNoFinding_WhenPackageMappingExtensionPointHasTests()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                """
+                public interface IOidcStarterRoleMapper
+                {
+                    IEnumerable<Claim> MapRoles(ClaimsPrincipal principal);
+                }
+                """),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/OidcStarterRoleMapperTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/OidcStarterRoleMapperTests.cs",
+                """
+                public class OidcStarterRoleMapperTests
+                {
+                    [Fact]
+                    public void Maps_Keycloak_Roles_To_ClaimTypesRole()
+                    {
+                        Assert.Contains(claims, c => c.Type == ClaimTypes.Role);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenPackageMappingExtensionPointHasNoTests()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+            "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+            """
+            public interface IOidcStarterRoleMapper
+            {
+                IEnumerable<Claim> MapRoles(ClaimsPrincipal principal);
+            }
+            """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-023", finding.RuleId);
+        Assert.Equal(FindingSeverity.Medium, finding.Severity);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenMappingTestFileHasNoMappingAssertions()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "public interface IOidcStarterRoleMapper { }"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleMappingTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleMappingTests.cs",
+                """
+                public class RoleMappingTests
+                {
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsNoFinding_WhenMappingTestFileHasRoleClaimAssertion()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "public interface IOidcStarterRoleMapper { }"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleMappingTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleMappingTests.cs",
+                """
+                public class RoleMappingTests
+                {
+                    [Fact]
+                    public void Maps_Keycloak_Roles_To_ClaimTypesRole()
+                    {
+                        Assert.Contains(claims, c => c.Type == ClaimTypes.Role);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenOnlyTestsHaveMappingEvidence()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff.Tests/OidcStarterRoleMapperTests.cs",
+            "src/OidcStarter.AspNetCore.Bff.Tests/OidcStarterRoleMapperTests.cs",
+            """
+            public class OidcStarterRoleMapperTests
+            {
+                [Fact]
+                public void Maps_Keycloak_Roles_To_ClaimTypesRole()
+                {
+                    Assert.Contains(claims, c => c.Type == ClaimTypes.Role);
+                }
+            }
+            """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenPackageOnlyHasBareTokenValidationParameters()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authentication/OidcOptions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authentication/OidcOptions.cs",
+                "var parameters = new TokenValidationParameters();"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleClaimMappingTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleClaimMappingTests.cs",
+                """
+                public class RoleClaimMappingTests
+                {
+                    [Fact]
+                    public void Maps_Role_Claim()
+                    {
+                        Assert.Equal(ClaimTypes.Role, mapped.Type);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsNoFinding_WhenNameClaimTypeHasTests()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authentication/OidcOptions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authentication/OidcOptions.cs",
+                "options.TokenValidationParameters.NameClaimType = \"preferred_username\";"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/NameClaimMappingTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/NameClaimMappingTests.cs",
+                """
+                public class NameClaimMappingTests
+                {
+                    [Fact]
+                    public void Maps_Name_Claim()
+                    {
+                        Assert.Equal("preferred_username", options.TokenValidationParameters.NameClaimType);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenOnlySampleHasRoleMapping()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/Backend/Program.cs",
+            "src/Backend/Program.cs",
+            """
+            options.TokenValidationParameters.RoleClaimType = "roles";
+            options.ClaimActions.MapJsonKey(ClaimTypes.Role, "roles");
+            """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenOnlyDocsMentionRoleMapping()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            "Role mapping is supported."));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenImplementationSignalsOnlyAppearInCommentsAndStrings()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+            "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+            """
+            // IOidcStarterRoleMapper
+            // MapRoles
+            // ClaimTypes.Role
+            var sample = "IOidcStarterRoleMapper MapRoles ClaimTypes.Role";
+            """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsNoFinding_WhenClaimsTransformationHasTests()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Claims/OidcStarterClaimsTransformation.cs",
+                "src/OidcStarter.AspNetCore.Bff/Claims/OidcStarterClaimsTransformation.cs",
+                "services.AddScoped<IClaimsTransformation, OidcStarterClaimsTransformation>();"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/OidcStarterClaimsTransformationTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/OidcStarterClaimsTransformationTests.cs",
+                """
+                public class OidcStarterClaimsTransformationTests
+                {
+                    [Fact]
+                    public void TransformAsync_Maps_Roles()
+                    {
+                        Assert.Contains(claims, c => c.Type == ClaimTypes.Role);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenClaimsTransformationTestsAreUnrelated()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Claims/OidcStarterClaimsTransformation.cs",
+                "src/OidcStarter.AspNetCore.Bff/Claims/OidcStarterClaimsTransformation.cs",
+                "services.AddScoped<IClaimsTransformation, MyClaimsTransformation>();"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/LoginTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/LoginTests.cs",
+                """
+                public class LoginTests
+                {
+                    [Fact]
+                    public void Login_Redirects_To_Provider()
+                    {
+                        Assert.True(result.Redirected);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsNoFinding_WhenTokenValidationRoleClaimTypeHasTests()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authentication/OidcOptions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authentication/OidcOptions.cs",
+                "options.TokenValidationParameters.RoleClaimType = \"roles\";"),
+            new RepositoryFile(
+                "tests/OidcStarter.Agent.Tests/RoleClaimMappingTests.cs",
+                "tests/OidcStarter.Agent.Tests/RoleClaimMappingTests.cs",
+                """
+                public class RoleClaimMappingTests
+                {
+                    [Fact]
+                    public void Maps_Role_Claim()
+                    {
+                        Assert.Equal(ClaimTypes.Role, mapped.Type);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsNoFinding_WhenClaimActionsMapJsonKeyHasTests()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authentication/OidcOptions.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authentication/OidcOptions.cs",
+                "options.ClaimActions.MapJsonKey(\"roles\", \"roles\");"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleClaimMappingTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleClaimMappingTests.cs",
+                """
+                public class RoleClaimMappingTests
+                {
+                    [Fact]
+                    public void Maps_Roles()
+                    {
+                        mappedClaims.Should().Contain(c => c.Type == ClaimTypes.Role);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenPackageEvidenceOnlyAppearsInRawString()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "var sample = \"\"\"\r\npublic interface IOidcStarterRoleMapper { }\r\n\"\"\";"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleClaimMappingTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleClaimMappingTests.cs",
+                """
+                public class RoleClaimMappingTests
+                {
+                    [Fact]
+                    public void Maps_Roles()
+                    {
+                        Assert.Contains(claims, c => c.Type == ClaimTypes.Role);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenTestEvidenceOnlyAppearsInRawString()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "public interface IOidcStarterRoleMapper { }"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleClaimMappingTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/RoleClaimMappingTests.cs",
+                "public class RoleClaimMappingTests\r\n{\r\n    private const string Sample = \"\"\"\r\nAssert.Contains(claims, c => c.Type == ClaimTypes.Role);\r\n\"\"\";\r\n}"));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenOnlyGenericRoleAndClaimWordsExist()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Authorization/Example.cs",
+            "src/OidcStarter.AspNetCore.Bff/Authorization/Example.cs",
+            """
+            var role = "admin";
+            var claim = "email";
+            """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void RoleClaimMappingTestCoverageRule_ReturnsFinding_WhenTestsAreNotMappingSpecific()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+                """
+                public interface IOidcStarterRoleMapper
+                {
+                    IEnumerable<Claim> MapRoles(ClaimsPrincipal principal);
+                }
+                """),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/LoginTests.cs",
+                "src/OidcStarter.AspNetCore.Bff.Tests/LoginTests.cs",
+                """
+                public class LoginTests
+                {
+                    [Fact]
+                    public void Login_Redirects_To_Provider()
+                    {
+                        Assert.True(result.Redirected);
+                    }
+                }
+                """));
+
+        var findings = new RoleClaimMappingTestCoverageRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
     public void BffAntiforgeryFlowRule_ReturnsFinding_WhenBackendSignalsOnlyAppearInSingularTestPath()
     {
         var snapshot = Snapshot(

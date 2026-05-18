@@ -25,6 +25,7 @@ public sealed class StarterHardeningAuditor : IAuditor
             new UnsafeHttpMethodsAntiforgeryCoverageRule(),
             new AspNetAuthenticationAuthorizationMiddlewareOrderRule(),
             new AuthorizationFoundationRule(),
+            new RoleClaimMappingTestCoverageRule(),
             new NoTokenStorageInFrontendRule(),
             new BffFrontendUsesBackendSessionRule(),
             new KeycloakSetupExistsRule(),
