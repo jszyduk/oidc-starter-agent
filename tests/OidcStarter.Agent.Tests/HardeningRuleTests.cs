@@ -921,6 +921,336 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenPackageOnlyHasAddAuthorization()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+            "services.AddAuthorization();"));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-022", finding.RuleId);
+        Assert.Equal(FindingSeverity.Medium, finding.Severity);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenPackageHasAddAuthorizationAndRoleMapperWithoutProtectedEndpoint()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Authorization/IOidcStarterRoleMapper.cs",
+            "src/OidcStarter.AspNetCore.Bff/Authorization/IOidcStarterRoleMapper.cs",
+            """
+            services.AddAuthorization();
+
+            public interface IOidcStarterRoleMapper
+            {
+            }
+            """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenPackageOnlyHasUseAuthorization()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Program.cs",
+            "src/OidcStarter.AspNetCore.Bff/Program.cs",
+            "app.UseAuthorization();"));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenPackageHasAuthorizeAttributeAndUseAuthorizationWithoutSetup()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+            "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+            """
+            app.UseAuthorization();
+
+            [Authorize]
+            public class SecureController : ControllerBase
+            {
+            }
+            """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsNoFinding_WhenPackageHasAddAuthorizationAndAuthorizeAttribute()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+                "services.AddAuthorization();"),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+                "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+                """
+                [Authorize]
+                public class SecureController : ControllerBase
+                {
+                    [HttpGet("secure")]
+                    public IActionResult Secure() => Ok();
+                }
+                """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsNoFinding_WhenPackageHasAddAuthorizationAndRequireAuthorization()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Endpoints.cs",
+            "src/OidcStarter.AspNetCore.Bff/Endpoints.cs",
+            """
+            services.AddAuthorization();
+
+            app.MapGet("/secure", () => Results.Ok()).RequireAuthorization();
+            """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenPackageOnlyHasRequireAuthorization()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Endpoints.cs",
+            "src/OidcStarter.AspNetCore.Bff/Endpoints.cs",
+            """app.MapGet("/secure", () => Results.Ok()).RequireAuthorization("AdminOnly");"""));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenPackageOnlyUsesAuthorizationNamespace()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+            "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+            "using Microsoft.AspNetCore.Authorization;"));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenPackageOnlyHasClaimsTransformation()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Claims.cs",
+            "src/OidcStarter.AspNetCore.Bff/Claims.cs",
+            "services.AddScoped<IClaimsTransformation, MyClaimsTransformation>();"));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsNoFinding_WhenPackageHasCustomAuthorizationSetupAndSampleProtectedEndpoint()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+                "services.AddOidcStarterAuthorization();"),
+            new RepositoryFile(
+                "src/Backend/SecureController.cs",
+                "src/Backend/SecureController.cs",
+                """
+                public class SecureController : ControllerBase
+                {
+                    [Authorize]
+                    [HttpGet("secure")]
+                    public IActionResult Secure() => Ok();
+                }
+                """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsNoFinding_WhenPackageHasAddAuthorizationAndSampleHasAuthorizeAttribute()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+                "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+                "services.AddAuthorization();"),
+            new RepositoryFile(
+                "src/Backend/SecureController.cs",
+                "src/Backend/SecureController.cs",
+                """
+                public class SecureController : ControllerBase
+                {
+                    [Authorize]
+                    [HttpGet("secure")]
+                    public IActionResult Secure() => Ok();
+                }
+                """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsNoFinding_WhenPackageHasRoleMappingExtensionPointAndSampleProtectedEndpoint()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff/Authorization/IOidcStarterRoleMapper.cs",
+                "src/OidcStarter.AspNetCore.Bff/Authorization/IOidcStarterRoleMapper.cs",
+                """
+                public interface IOidcStarterRoleMapper
+                {
+                    IEnumerable<string> MapRoles(ClaimsPrincipal principal);
+                }
+                """),
+            new RepositoryFile(
+                "src/Backend/AdminController.cs",
+                "src/Backend/AdminController.cs",
+                """
+                public class AdminController : ControllerBase
+                {
+                    [Authorize(Roles = "admin")]
+                    [HttpGet("admin")]
+                    public IActionResult Admin() => Ok();
+                }
+                """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenOnlyDocsMentionAuthorization()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            "Authorization is important."));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenOnlyTestFileHasAuthorizationSignals()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "tests/OidcStarter.Agent.Tests/AuthorizationTests.cs",
+            "tests/OidcStarter.Agent.Tests/AuthorizationTests.cs",
+            """
+            [Authorize]
+            public class SecureController : ControllerBase
+            {
+                public void ConfigureServices(IServiceCollection services)
+                {
+                    services.AddAuthorization();
+                }
+            }
+            """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenAuthorizationSignalsOnlyAppearInComments()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+            "src/OidcStarter.AspNetCore.Bff/ServiceCollectionExtensions.cs",
+            """
+            // services.AddAuthorization();
+            // [Authorize]
+            """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsFinding_WhenPackageHasAuthorizeAttributeWithoutSetup()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+            "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+            """
+            [Authorize]
+            public class SecureController : ControllerBase
+            {
+                [HttpGet("secure")]
+                public IActionResult Secure() => Ok();
+            }
+            """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void AuthorizationFoundationRule_ReturnsNoFinding_WhenPackageHasPolicySetupAndProtectedEndpoint()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+            "src/OidcStarter.AspNetCore.Bff/SecureController.cs",
+            """
+            public static class ServiceCollectionExtensions
+            {
+                public static void Configure(IServiceCollection services)
+                {
+                    services.AddAuthorization(options =>
+                    {
+                        options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
+                    });
+                }
+            }
+
+            public class SecureController : ControllerBase
+            {
+                [Authorize(Policy = "AdminOnly")]
+                [HttpGet("secure")]
+                public IActionResult Secure() => Ok();
+            }
+            """));
+
+        var findings = new AuthorizationFoundationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void BffAntiforgeryFlowRule_ReturnsFinding_WhenBackendSignalsOnlyAppearInSingularTestPath()
     {
         var snapshot = Snapshot(
