@@ -1676,6 +1676,296 @@ public sealed class HardeningRuleTests
     }
 
     [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsNoFinding_WhenReadmeDocumentsKeycloakRoleMapping()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            "The sample Keycloak role mapping maps realm roles from realm_access to ClaimTypes.Role using the starter role mapper extension point."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenReadmeHasOnlySampleKeycloakRolesExample()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            "Sample Keycloak roles example."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsNoFinding_WhenReadmeHasValidProseAndCodeBlock()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            """
+            The sample maps Keycloak realm roles from realm_access to ClaimTypes.Role through the starter role mapper extension point.
+
+            ```csharp
+            options.TokenValidationParameters.RoleClaimType = "roles";
+            ```
+            """));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsNoFinding_WhenDocsDocumentProviderClaimMapping()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "docs/authorization.md",
+            "docs/authorization.md",
+            "To adapt another OIDC provider, implement the claims mapper and map provider-specific role claims to application roles."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenReadmeHasOnlyGenericRolesMention()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            "Roles are supported."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        var finding = Assert.Single(findings);
+        Assert.Equal("HARDENING-024", finding.RuleId);
+        Assert.Equal(FindingSeverity.Low, finding.Severity);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenReadmeHasOnlyGenericAuthorizationMention()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            "Authorization is important for applications."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenSignalsAreScatteredAcrossParagraphs()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            """
+            Keycloak is used.
+
+            Roles are supported.
+
+            You can configure many options.
+            """));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsNoFinding_WhenSameParagraphHasMeaningfulMappingGuidance()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            "To adapt provider-specific claims, configure the starter role mapper to map Keycloak realm roles from realm_access to ClaimTypes.Role."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenRoleMappingSignalsOnlyAppearInCodeFence()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            """
+            ```csharp
+            ClaimTypes.Role
+            RoleClaimType
+            realm_access
+            ```
+            """));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenRoleMappingSignalsOnlyAppearInTildeCodeFence()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            """
+            ~~~csharp
+            ClaimTypes.Role
+            realm_access
+            MapRoles
+            ~~~
+            """));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenRoleMappingSignalsOnlyAppearInIndentedCodeBlock()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "README.md",
+            "README.md",
+            """
+                ClaimTypes.Role
+                realm_access
+                MapRoles
+            """));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenOnlySecurityBaselineDocumentsRoleMapping()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "docs/security-baseline-v1.md",
+            "docs/security-baseline-v1.md",
+            "The sample Keycloak role mapping maps realm roles from realm_access to ClaimTypes.Role using the starter role mapper extension point."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenOnlyChangelogDocumentsRoleMapping()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "CHANGELOG.md",
+            "CHANGELOG.md",
+            "Added Keycloak role mapping example. Configure claims and map roles to ClaimTypes.Role."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenOnlyReleaseNotesDocumentRoleMapping()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "RELEASE_NOTES.md",
+            "RELEASE_NOTES.md",
+            "To adapt provider-specific claims, configure the starter role mapper to map Keycloak realm roles from realm_access to ClaimTypes.Role."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsNoFinding_WhenSecurityBaselineAndReadmeBothMentionRoleMapping()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "docs/security-baseline-v1.md",
+                "docs/security-baseline-v1.md",
+                "The sample Keycloak role mapping maps realm roles from realm_access to ClaimTypes.Role using the starter role mapper extension point."),
+            new RepositoryFile(
+                "README.md",
+                "README.md",
+                "To adapt provider-specific claims, configure the starter role mapper to map Keycloak realm roles from realm_access to ClaimTypes.Role."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenOnlyGeneratedReportDocumentsRoleMapping()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile(
+                "reports/audit-report.md",
+                "reports/audit-report.md",
+                "The sample Keycloak role mapping maps realm roles from realm_access to ClaimTypes.Role using the starter role mapper extension point."),
+            new RepositoryFile(
+                "sample-output/audit-report.md",
+                "sample-output/audit-report.md",
+                "The sample Keycloak role mapping maps realm roles from realm_access to ClaimTypes.Role using the starter role mapper extension point."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsNoFinding_WhenSecurityMarkdownDocumentsRoleMapping()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "SECURITY.md",
+            "SECURITY.md",
+            "Provider-specific claims may differ. The sample shows how to map Keycloak roles to ClaimTypes.Role through the starter extension point."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenSignalsAreSplitAcrossDocs()
+    {
+        var snapshot = Snapshot(
+            new RepositoryFile("README.md", "README.md", "Keycloak is used."),
+            new RepositoryFile("docs/roles.md", "docs/roles.md", "Roles are supported."),
+            new RepositoryFile("docs/claims.md", "docs/claims.md", "Configure claims."));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
+    public void SampleRoleMappingDocumentationRule_ReturnsFinding_WhenOnlyCSharpCommentsDocumentRoleMapping()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+            "src/OidcStarter.AspNetCore.Bff/Authorization/OidcStarterRoleMapper.cs",
+            """
+            // The sample Keycloak role mapping maps realm roles from realm_access
+            // to ClaimTypes.Role using the starter role mapper extension point.
+            """));
+
+        var findings = new SampleRoleMappingDocumentationRule().Evaluate(snapshot);
+
+        Assert.Single(findings);
+    }
+
+    [Fact]
     public void BffAntiforgeryFlowRule_ReturnsFinding_WhenBackendSignalsOnlyAppearInSingularTestPath()
     {
         var snapshot = Snapshot(
