@@ -21,6 +21,7 @@ public sealed class StarterHardeningAuditor : IAuditor
             new AuthenticationCookieLifetimeRule(),
             new AuthenticationCookieSlidingExpirationRule(),
             new AuthenticationCookieNameRule(),
+            new BffAuthorizationCodeFlowRule(),
             new BffAntiforgeryFlowRule(),
             new UnsafeHttpMethodsAntiforgeryCoverageRule(),
             new AspNetAuthenticationAuthorizationMiddlewareOrderRule(),
