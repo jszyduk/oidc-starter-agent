@@ -31,6 +31,7 @@ public sealed class StarterHardeningAuditor : IAuditor
             new BffFrontendUsesBackendSessionRule(),
             new KeycloakSetupExistsRule(),
             new BackendTestsExistRule(),
+            new AuthEndpointBehaviorTestsRule(),
             new ReadmeExistsRule(),
             new ProductionHardeningDocumentationRule(),
             new BffAuthEndpointsShouldUseControllersRule()
