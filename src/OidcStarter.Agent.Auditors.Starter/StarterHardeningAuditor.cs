@@ -32,6 +32,7 @@ public sealed class StarterHardeningAuditor : IAuditor
             new KeycloakSetupExistsRule(),
             new BackendTestsExistRule(),
             new AuthEndpointBehaviorTestsRule(),
+            new AntiforgeryBehaviorTestsRule(),
             new ReadmeExistsRule(),
             new ProductionHardeningDocumentationRule(),
             new BffAuthEndpointsShouldUseControllersRule()
