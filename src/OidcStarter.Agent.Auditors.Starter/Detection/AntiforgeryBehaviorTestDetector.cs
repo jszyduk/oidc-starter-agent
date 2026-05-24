@@ -136,9 +136,53 @@ public static partial class AntiforgeryBehaviorTestDetector
 
     private static string StripCommentsAndRawStrings(string content)
     {
-        var withoutBlockComments = BlockCommentRegex().Replace(content, string.Empty);
-        var withoutLineComments = LineCommentRegex().Replace(withoutBlockComments, string.Empty);
-        return RawStringLiteralRegex().Replace(withoutLineComments, "RAW_STRING_LITERAL");
+        var result = new System.Text.StringBuilder(content.Length);
+
+        for (var index = 0; index < content.Length;)
+        {
+            if (TryConsumeRawStringLiteral(content, ref index, result))
+            {
+                continue;
+            }
+
+            if (TryConsumeVerbatimStringLiteral(content, ref index, result))
+            {
+                continue;
+            }
+
+            if (TryConsumeRegularStringLiteral(content, ref index, result))
+            {
+                continue;
+            }
+
+            if (index + 1 < content.Length && content[index] == '/' && content[index + 1] == '/')
+            {
+                index += 2;
+                while (index < content.Length && content[index] != '\r' && content[index] != '\n')
+                {
+                    index++;
+                }
+
+                continue;
+            }
+
+            if (index + 1 < content.Length && content[index] == '/' && content[index + 1] == '*')
+            {
+                index += 2;
+                while (index + 1 < content.Length && (content[index] != '*' || content[index + 1] != '/'))
+                {
+                    index++;
+                }
+
+                index = Math.Min(index + 2, content.Length);
+                continue;
+            }
+
+            result.Append(content[index]);
+            index++;
+        }
+
+        return result.ToString();
     }
 
     private static string StripStringLiterals(string content)
@@ -150,6 +194,105 @@ public static partial class AntiforgeryBehaviorTestDetector
     private static string NormalizePath(string path)
     {
         return path.Replace('\\', '/');
+    }
+
+    private static bool TryConsumeRawStringLiteral(string content, ref int index, System.Text.StringBuilder result)
+    {
+        var start = index;
+        while (index < content.Length && content[index] == '$')
+        {
+            index++;
+        }
+
+        var quoteStart = index;
+        while (index < content.Length && content[index] == '"')
+        {
+            index++;
+        }
+
+        var quoteCount = index - quoteStart;
+        if (quoteCount < 3)
+        {
+            index = start;
+            return false;
+        }
+
+        var delimiter = new string('"', quoteCount);
+        var end = content.IndexOf(delimiter, index, StringComparison.Ordinal);
+        index = end < 0 ? content.Length : end + quoteCount;
+        result.Append("RAW_STRING_LITERAL");
+        return true;
+    }
+
+    private static bool TryConsumeVerbatimStringLiteral(string content, ref int index, System.Text.StringBuilder result)
+    {
+        var prefixLength = content.AsSpan(index).StartsWith("@\"".AsSpan(), StringComparison.Ordinal) ? 1 :
+            content.AsSpan(index).StartsWith("$@\"".AsSpan(), StringComparison.Ordinal)
+                || content.AsSpan(index).StartsWith("@$\"".AsSpan(), StringComparison.Ordinal)
+                    ? 2
+                    : 0;
+
+        if (prefixLength == 0)
+        {
+            return false;
+        }
+
+        result.Append(content, index, prefixLength + 1);
+        index += prefixLength + 1;
+
+        while (index < content.Length)
+        {
+            result.Append(content[index]);
+            if (content[index] == '"')
+            {
+                if (index + 1 < content.Length && content[index + 1] == '"')
+                {
+                    result.Append(content[index + 1]);
+                    index += 2;
+                    continue;
+                }
+
+                index++;
+                break;
+            }
+
+            index++;
+        }
+
+        return true;
+    }
+
+    private static bool TryConsumeRegularStringLiteral(string content, ref int index, System.Text.StringBuilder result)
+    {
+        var prefixLength = content[index] == '$' && index + 1 < content.Length && content[index + 1] == '"' ? 1 : 0;
+        if (content[index + prefixLength] != '"')
+        {
+            return false;
+        }
+
+        result.Append(content, index, prefixLength + 1);
+        index += prefixLength + 1;
+
+        while (index < content.Length)
+        {
+            result.Append(content[index]);
+            if (content[index] == '\\' && index + 1 < content.Length)
+            {
+                result.Append(content[index + 1]);
+                index += 2;
+                continue;
+            }
+
+            if (content[index] == '"')
+            {
+                index++;
+                break;
+            }
+
+            index++;
+        }
+
+        return true;
     }
 
     [GeneratedRegex(@"(?<![A-Za-z0-9])(?:Csrf|CSRF|Xsrf|XSRF|AntiforgeryToken|AntiforgeryTokenSet|RequestToken|GetAndStoreTokens|GetTokens|IssuesRequestToken|TokenEndpoint)(?![A-Za-z0-9])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
@@ -188,10 +331,10 @@ public static partial class AntiforgeryBehaviorTestDetector
     [GeneratedRegex(@"(?<![A-Za-z0-9])(?:Logout|HttpPost|POST|PostAsync|Unsafe|UnsafeMethod)(?![A-Za-z0-9])|[""']/?(?:api/auth/)?logout[""']", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex UnsafeEndpointRegex();
 
-    [GeneratedRegex(@"(?<![A-Za-z0-9])(?:WithoutCsrfToken|WithCsrfToken|WithoutAntiforgeryToken|WithAntiforgeryToken|RequiresAntiforgery|ProtectedByAntiforgery|ValidateAntiForgeryToken|AutoValidateAntiforgeryToken|OidcStarterValidateAntiforgeryToken)(?![A-Za-z0-9])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"(?<![A-Za-z0-9])(?:WithoutCsrfToken|WithCsrfToken|WithoutAntiforgeryToken|WithAntiforgeryToken|RequiresAntiforgery|ProtectedByAntiforgery|ValidateAntiForgeryToken|AutoValidateAntiforgeryToken|OidcStarterValidateAntiforgeryToken(?:Attribute)?)(?![A-Za-z0-9])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex UnsafeEndpointAntiforgeryContextRegex();
 
-    [GeneratedRegex(@"\b(?:ValidateAntiForgeryToken|AutoValidateAntiforgeryToken|OidcStarterValidateAntiforgeryToken)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\b(?:ValidateAntiForgeryToken|AutoValidateAntiforgeryToken|OidcStarterValidateAntiforgeryToken(?:Attribute)?)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex UnsafeEndpointAntiforgeryCodeRegex();
 
     [GeneratedRegex(@"[""'][^""']*(?:POST logout with X-CSRF-TOKEN|POST logout without csrf|without csrf|missing antiforgery token|valid antiforgery token|missing csrf token|valid csrf token|protected by antiforgery|X-CSRF-TOKEN|X-XSRF-TOKEN)[^""']*[""']", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
@@ -199,15 +342,6 @@ public static partial class AntiforgeryBehaviorTestDetector
 
     [GeneratedRegex(@"\bAssert\.\w+\s*\([^\r\n;]*(?:BadRequest|Status400BadRequest|NoContent|Redirect|StatusCode|Reject|Allow)|\b(?:BadRequestResult|StatusCodes\.Status400BadRequest|StatusCodes\.Status204NoContent)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex UnsafeEndpointAssertionRegex();
-
-    [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline | RegexOptions.CultureInvariant)]
-    private static partial Regex BlockCommentRegex();
-
-    [GeneratedRegex(@"//.*$", RegexOptions.Multiline | RegexOptions.CultureInvariant)]
-    private static partial Regex LineCommentRegex();
-
-    [GeneratedRegex(@"\$*""""""[\s\S]*?""""""", RegexOptions.CultureInvariant)]
-    private static partial Regex RawStringLiteralRegex();
 
     [GeneratedRegex(@"(?:\$@|@\$|@)""(?:""""|[^""])*""", RegexOptions.CultureInvariant)]
     private static partial Regex VerbatimStringLiteralRegex();

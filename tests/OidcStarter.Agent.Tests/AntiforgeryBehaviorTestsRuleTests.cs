@@ -102,6 +102,139 @@ public sealed class AntiforgeryBehaviorTestsRuleTests
     }
 
     [Fact]
+    public void ReturnsNoFinding_WhenRequestValidationAndLogoutFilterFactoryEvidenceUsePackageAttribute()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff.Tests/Controllers/AuthControllerTests.cs",
+            "src/OidcStarter.AspNetCore.Bff.Tests/Controllers/AuthControllerTests.cs",
+            """
+            public sealed class AuthControllerTests
+            {
+                [Fact]
+                public async Task Logout_request_filter_returns_bad_request_when_antiforgery_validation_fails()
+                {
+                    var antiforgery = new FakeAntiforgery(throwsOnValidate: true);
+                    var method = typeof(AuthController).GetMethod(nameof(AuthController.Logout));
+                    var context = CreateAuthorizationFilterContext(httpContext);
+
+                    Assert.NotNull(method);
+                    var attribute = Assert.Single(
+                        method.GetCustomAttributes(inherit: false),
+                        static attribute => attribute is OidcStarterValidateAntiforgeryTokenAttribute);
+                    var filterFactory = Assert.IsAssignableFrom<IFilterFactory>(attribute);
+                    var filter = Assert.IsAssignableFrom<IAsyncAuthorizationFilter>(
+                        filterFactory.CreateInstance(httpContext.RequestServices));
+
+                    await filter.OnAuthorizationAsync(context);
+
+                    Assert.True(antiforgery.ValidateRequestCalled);
+                    Assert.IsType<BadRequestResult>(context.Result);
+                }
+
+                [Fact]
+                public async Task Package_antiforgery_filter_returns_bad_request_when_validation_fails()
+                {
+                    var filter = new OidcStarterValidateAntiforgeryTokenFilter(
+                        new FakeAntiforgery(throwsOnValidate: true));
+                    var context = CreateAuthorizationFilterContext();
+
+                    await filter.OnAuthorizationAsync(context);
+
+                    Assert.IsType<BadRequestResult>(context.Result);
+                }
+
+                private sealed class FakeAntiforgery(bool throwsOnValidate = false) : IAntiforgery
+                {
+                    public bool ValidateRequestCalled { get; private set; }
+
+                    public Task ValidateRequestAsync(HttpContext httpContext)
+                    {
+                        ValidateRequestCalled = true;
+                        return Task.CompletedTask;
+                    }
+                }
+            }
+            """));
+
+        var findings = new AntiforgeryBehaviorTestsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
+    public void ReturnsNoFinding_WhenUrlStringAppearsBeforeAntiforgeryEvidence()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff.Tests/Controllers/AuthControllerTests.cs",
+            "src/OidcStarter.AspNetCore.Bff.Tests/Controllers/AuthControllerTests.cs",
+            """
+            public sealed class AuthControllerTests
+            {
+                [Fact]
+                public void Login_challenges_openid_connect_with_frontend_redirect()
+                {
+                    Assert.Equal("http://localhost:4200", result.Properties?.RedirectUri);
+                }
+
+                [Fact]
+                public void Logout_rejects_missing_trusted_origin()
+                {
+                    controller.HttpContext.Request.Headers.Origin = "http://localhost:4200";
+                    Assert.IsType<ForbidResult>(result);
+                }
+
+                [Fact]
+                public async Task Logout_request_filter_returns_bad_request_when_antiforgery_validation_fails()
+                {
+                    var antiforgery = new FakeAntiforgery(throwsOnValidate: true);
+                    var method = typeof(AuthController).GetMethod(nameof(AuthController.Logout));
+                    var context = CreateAuthorizationFilterContext(httpContext);
+
+                    Assert.NotNull(method);
+                    var attribute = Assert.Single(
+                        method.GetCustomAttributes(inherit: false),
+                        static attribute => attribute is OidcStarterValidateAntiforgeryTokenAttribute);
+                    var filterFactory = Assert.IsAssignableFrom<IFilterFactory>(attribute);
+                    var filter = Assert.IsAssignableFrom<IAsyncAuthorizationFilter>(
+                        filterFactory.CreateInstance(httpContext.RequestServices));
+
+                    await filter.OnAuthorizationAsync(context);
+
+                    Assert.True(antiforgery.ValidateRequestCalled);
+                    Assert.IsType<BadRequestResult>(context.Result);
+                }
+
+                [Fact]
+                public async Task Package_antiforgery_filter_returns_bad_request_when_validation_fails()
+                {
+                    var filter = new OidcStarterValidateAntiforgeryTokenFilter(
+                        new FakeAntiforgery(throwsOnValidate: true));
+                    var context = CreateAuthorizationFilterContext();
+
+                    await filter.OnAuthorizationAsync(context);
+
+                    Assert.IsType<BadRequestResult>(context.Result);
+                }
+
+                private sealed class FakeAntiforgery(bool throwsOnValidate = false) : IAntiforgery
+                {
+                    public bool ValidateRequestCalled { get; private set; }
+
+                    public Task ValidateRequestAsync(HttpContext httpContext)
+                    {
+                        ValidateRequestCalled = true;
+                        return Task.CompletedTask;
+                    }
+                }
+            }
+            """));
+
+        var findings = new AntiforgeryBehaviorTestsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void ReturnsNoFinding_WhenTokenIssuingAndUnsafeEndpointEvidenceExist()
     {
         var snapshot = Snapshot(new RepositoryFile(
