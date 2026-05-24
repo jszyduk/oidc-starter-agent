@@ -225,6 +225,44 @@ public sealed class UnauthorizedForbiddenBehaviorTestsRuleTests
     }
 
     [Fact]
+    public void ReturnsNoFinding_WhenCookieAuthEventForbiddenEvidenceContainsUrlLiteral()
+    {
+        var snapshot = Snapshot(new RepositoryFile(
+            "src/OidcStarter.AspNetCore.Bff.Tests/Extensions/OidcStarterBffServiceCollectionExtensionsTests.cs",
+            "src/OidcStarter.AspNetCore.Bff.Tests/Extensions/OidcStarterBffServiceCollectionExtensionsTests.cs",
+            """
+            public sealed class OidcStarterBffServiceCollectionExtensionsTests
+            {
+                [Fact]
+                public async Task Cookie_authentication_OnRedirectToLogin_returns_401_for_api_request()
+                {
+                    var context = CreateRedirectContext("https://api.example.com/api/auth/me");
+                    var events = new CookieAuthenticationEvents();
+
+                    await events.OnRedirectToLogin(context);
+
+                    Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
+                }
+
+                [Fact]
+                public async Task Cookie_authentication_OnRedirectToAccessDenied_returns_403_for_api_request()
+                {
+                    var context = CreateRedirectContext("https://api.example.com/api/admin/users");
+                    var events = new CookieAuthenticationEvents();
+
+                    await events.OnRedirectToAccessDenied(context);
+
+                    Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+                }
+            }
+            """));
+
+        var findings = new UnauthorizedForbiddenBehaviorTestsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void ReturnsFinding_WhenChallengeResultHasNoAnonymousContext()
     {
         var snapshot = Snapshot(new RepositoryFile(
