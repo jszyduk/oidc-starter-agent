@@ -154,6 +154,27 @@ public sealed class PackageSampleCompatibilityTestsRuleTests
     }
 
     [Fact]
+    public void ReturnsNoFinding_WhenTestProjectMsBuildTargetBuildsBackendWithProjectReference()
+    {
+        var snapshot = Snapshot(
+            BackendProjectReference(),
+            new RepositoryFile(
+                "src/OidcStarter.AspNetCore.Bff.Tests/OidcStarter.AspNetCore.Bff.Tests.csproj",
+                "src/OidcStarter.AspNetCore.Bff.Tests/OidcStarter.AspNetCore.Bff.Tests.csproj",
+                """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <Target Name="BuildSampleBackend" BeforeTargets="Test">
+                    <MSBuild Projects="..\backend\Backend.csproj" Targets="Build" Properties="Configuration=$(Configuration)" />
+                  </Target>
+                </Project>
+                """));
+
+        var findings = new PackageSampleCompatibilityTestsRule().Evaluate(snapshot);
+
+        Assert.Empty(findings);
+    }
+
+    [Fact]
     public void ReturnsFinding_WhenOnlyPackageTestsExist()
     {
         var snapshot = Snapshot(new RepositoryFile(

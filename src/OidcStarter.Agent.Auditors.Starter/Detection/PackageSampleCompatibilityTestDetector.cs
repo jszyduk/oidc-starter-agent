@@ -171,6 +171,11 @@ public static partial class PackageSampleCompatibilityTestDetector
                 && content.Contains("OidcStarter.AspNetCore.Bff.csproj", StringComparison.OrdinalIgnoreCase);
         }
 
+        if (path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            return MsBuildBackendBuildTargetRegex().IsMatch(content);
+        }
+
         if (!IsBuildOrCiFile(path))
         {
             return false;
@@ -261,6 +266,9 @@ public static partial class PackageSampleCompatibilityTestDetector
 
     [GeneratedRegex(@"\b[\w.-]+\.sln\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SolutionRegex();
+
+    [GeneratedRegex(@"<\s*Target\b[\s\S]*?<\s*MSBuild\b(?=[^>]*\bProjects\s*=\s*[""'][^""']*Backend\.csproj[^""']*[""'])(?=[^>]*\bTargets\s*=\s*[""'][^""']*\bBuild\b[^""']*[""'])[^>]*\/?\s*>", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex MsBuildBackendBuildTargetRegex();
 
     [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline | RegexOptions.CultureInvariant)]
     private static partial Regex BlockCommentRegex();
