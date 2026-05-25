@@ -53,11 +53,18 @@ Implemented starter-auditor coverage includes:
 - IdP/OIDC logout awareness through implementation evidence or documented caveats.
 - Authentication cookie `HttpOnly`, `SecurePolicy`, and `SameSite` configuration.
 - BFF antiforgery flow detection.
+- Unsafe HTTP method antiforgery coverage.
+- Focused login/logout/me behavior test readiness.
+- Focused antiforgery behavior test readiness, including package antiforgery attribute evidence.
+- Focused unauthorized/forbidden behavior test readiness.
+- Package/sample compatibility evidence through tests or build-together signals.
 - ASP.NET Core authentication/authorization middleware order.
 - Local Keycloak setup and development-only labeling.
 - Production hardening documentation.
 
 This coverage is deterministic and heuristic; it is not a formal security compliance claim.
+Baseline status values such as `Implemented` describe analyzer coverage in this repository, not a
+guarantee that every audited target repository passes the rule.
 
 ## Development
 
@@ -75,7 +82,6 @@ dotnet test .\tests\OidcStarter.Agent.Tests\OidcStarter.Agent.Tests.csproj
 
 ## Roadmap
 
-- Unsafe HTTP method antiforgery coverage.
 - CORS explicit origin checks.
 - Secrets scanning.
 - SPA-focused rules.

@@ -16,7 +16,8 @@ New `StarterHardeningAuditor` rule development is frozen for now.
 
 Do not add new hardening rules unless explicitly requested.
 
-Current priority is to use the existing audit findings to improve `oidc-starter` before a possible `v1.0.1` NuGet patch.
+Current priority is documentation and release-readiness support after the latest `oidc-starter`
+hardening round. The latest audit smoke against `oidc-starter` reported 0 findings.
 
 ## Current auditor status
 
@@ -60,35 +61,12 @@ Tests:
 
 ## Active audit findings
 
-At the current freeze point, the known active findings in `oidc-starter` are:
+At the current freeze point, there are no known active findings in `oidc-starter`.
 
-### HARDENING-025
-
-Missing focused login/logout behavior tests.
-
-Expected direction:
-- add focused tests for login behavior,
-- add focused tests for logout behavior,
-- avoid runtime behavior changes unless a real bug is found.
-
-### HARDENING-027
-
-Missing unauthorized/forbidden behavior tests.
-
-Expected direction:
-- add tests for unauthenticated / unauthorized behavior,
-- add tests for insufficient-permission / forbidden behavior,
-- avoid changing authorization runtime behavior unless a real bug is found.
-
-### HARDENING-028
-
-Missing package/sample compatibility evidence.
-
-Expected direction:
-- add integration/build-together evidence that the sample backend and reusable package remain compatible,
-- prefer the smallest maintainable compatibility evidence,
-- prefer focused compatibility tests or clear CI/build evidence,
-- avoid broad end-to-end test infrastructure unless explicitly requested.
+Latest verification:
+- `oidc-starter` BFF test project passed 24/24,
+- `oidc-starter-agent` audit smoke against `oidc-starter` reported 0 findings,
+- generated audit reports remain runtime artifacts and should not be committed.
 
 ## Recently resolved / clarified findings
 
@@ -99,6 +77,44 @@ Unsafe HTTP method antiforgery coverage.
 Status:
 - resolved after `oidc-starter` added `OidcStarterValidateAntiforgeryToken`,
 - `oidc-starter-agent` now recognizes this custom attribute as valid antiforgery coverage.
+
+### HARDENING-025
+
+Login/logout/me behavior test readiness.
+
+Status:
+- resolved in `oidc-starter` with focused package tests for login, logout, current-user, and
+  session-state behavior,
+- `oidc-starter-agent` recognizes the focused package test evidence.
+
+### HARDENING-026
+
+Antiforgery behavior test readiness.
+
+Status:
+- resolved in `oidc-starter` with focused token issuing, request validation, and unsafe endpoint
+  protection evidence,
+- `oidc-starter-agent` recognizes package antiforgery attribute/filter evidence,
+- detector preprocessing now handles URL string literals without corrupting evidence.
+
+### HARDENING-027
+
+Unauthorized/forbidden behavior test readiness.
+
+Status:
+- resolved in `oidc-starter` with package-configured cookie auth event tests for 401 and 403 API
+  behavior,
+- detector preprocessing now handles URL string literals without corrupting evidence.
+
+### HARDENING-028
+
+Package/sample compatibility evidence.
+
+Status:
+- resolved in `oidc-starter` with sample backend project-reference evidence plus a package test
+  project MSBuild target that builds the sample backend,
+- `oidc-starter-agent` recognizes focused MSBuild target-based build-together evidence in `.csproj`
+  files.
 
 ### HARDENING-029
 
@@ -126,15 +142,10 @@ For the next tasks:
 - Do not refactor unrelated code.
 - Do not change public APIs unless required.
 - Do not update package version or release artifacts unless explicitly requested.
-- Do not create `v1.0.1` release yet.
 - Do not commit generated audit reports.
 
-## Suggested next task order
+## Known follow-ups
 
-Suggested next task order, unless the user changes priority:
-
-1. Fix `HARDENING-025`.
-2. Fix `HARDENING-027`.
-3. Fix `HARDENING-028`.
-4. Re-run `oidc-starter-agent` audit against `oidc-starter`.
-5. If audit is clean, prepare `v1.0.1` release candidate steps separately.
+- `PackageSampleCompatibilityTestDetector` has solution-file evidence logic, but `RepositoryScanner`
+  may not currently include `.sln` files. This is not a current blocker for `oidc-starter` because
+  `.csproj` MSBuild target-based compatibility evidence is recognized.

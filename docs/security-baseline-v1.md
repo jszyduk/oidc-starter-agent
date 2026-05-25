@@ -152,9 +152,9 @@ Status is about analyzer coverage in `oidc-starter-agent`, not about whether `oi
 | HARDENING-029 | BFF-AUTHZ-005 | Implemented: checks package frontend identity/session endpoints for risky exposure of raw claims, identity objects, authentication properties, or tokens. Static and heuristic. |
 | HARDENING-030 | OIDC-FLOW-001 | Implemented: checks package-aware BFF OpenIdConnectOptions/AddOpenIdConnect configuration for explicit Authorization Code response type and risky implicit/hybrid values. Static and heuristic. |
 | HARDENING-025 | TEST-READINESS-001 | Implemented: checks package test files for focused login/logout/me behavior test evidence. Static and heuristic. |
-| HARDENING-026 | TEST-READINESS-002 | Implemented: checks package test files for focused antiforgery behavior test evidence across at least two categories, such as token issuing, request validation, and unsafe endpoint protection. Static and heuristic. |
-| HARDENING-027 | TEST-READINESS-003 | Implemented: checks starter/package C# test files for focused unauthorized and forbidden behavior test evidence. Static and heuristic. |
-| HARDENING-028 | TEST-READINESS-004 | Implemented: checks for package/sample compatibility evidence through integration tests or strong build-together project/solution/CI evidence. Static and heuristic. |
+| HARDENING-026 | TEST-READINESS-002 | Implemented: checks package test files for focused antiforgery behavior test evidence across at least two categories, such as token issuing, request validation, and unsafe endpoint protection. Recognizes package antiforgery attribute/filter evidence and uses string-aware preprocessing for URL literals. Static and heuristic. |
+| HARDENING-027 | TEST-READINESS-003 | Implemented: checks starter/package C# test files for focused unauthorized and forbidden behavior evidence, including package-configured cookie auth event tests. Uses string-aware preprocessing for URL literals. Static and heuristic. |
+| HARDENING-028 | TEST-READINESS-004 | Implemented: checks for package/sample compatibility evidence through integration tests or strong build-together project/solution/CI evidence, including focused MSBuild target-based sample backend builds in `.csproj` files. Static and heuristic. |
 
 ## Future Analyzer Implementation Notes
 
@@ -169,6 +169,8 @@ Future findings should include or infer the relevant auth mode where possible. B
 Each future rule should reference one or more baseline rule IDs so findings can be traced back to this baseline. Rules should avoid tight coupling to exact file names unless the file name is itself part of the expected convention.
 
 Rules should prefer architectural and security requirements over current implementation details. False-positive risk should be considered before enforcing a rule, especially for configuration that may be supplied outside the repository.
+
+Known follow-up: `PackageSampleCompatibilityTestDetector` has solution-file evidence logic, but the current repository scanner does not include `.sln` files. This is not a blocker for the current `oidc-starter` audit because `.csproj` MSBuild target-based compatibility evidence is recognized.
 
 ## Candidate Rules for Next Implementation Phase
 
